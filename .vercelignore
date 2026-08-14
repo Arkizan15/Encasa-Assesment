@@ -1,0 +1,12 @@
+# JANGAN upload kredensial / file sensitif ke Vercel
+config.json
+service-account.json
+*.pem
+.env
+.env.*
+*.local
+
+# Artefak build & deps (Vercel menjalankan build sendiri)
+node_modules
+dist
+.tmp
