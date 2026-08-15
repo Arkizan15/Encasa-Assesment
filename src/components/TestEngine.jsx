@@ -264,7 +264,7 @@ export default function TestEngine({ user, onFinish }) {
               type="button"
               onClick={() => setShowPalette(true)}
               aria-label="Buka navigasi soal"
-              className="lg:hidden inline-flex items-center justify-center rounded-lg border border-navy-600 bg-navy-800 p-2 text-slate-300 transition-colors hover:border-blue-400 hover:text-accent-300"
+              className="lg:hidden inline-flex items-center justify-center rounded-lg border border-navy-600 bg-navy-800 p-2 text-slate-300 transition-colors hover:border-blue-400 hover:text-amber-300"
             >
               <Squares2X2Icon className="h-5 w-5" />
             </button>
@@ -302,7 +302,7 @@ export default function TestEngine({ user, onFinish }) {
         <div className="mb-5">
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-xs font-bold text-slate-400">
-              Soal <span className="text-accent">{currentIndex + 1}</span> dari {QUESTIONS.length}
+              Soal <span className="text-amber-400">{currentIndex + 1}</span> dari {QUESTIONS.length}
             </p>
             <p className="text-xs font-bold text-slate-400 tabular-nums">
               {Math.round(((currentIndex + 1) / QUESTIONS.length) * 100)}%
@@ -334,7 +334,7 @@ export default function TestEngine({ user, onFinish }) {
                 type="button"
                 disabled={currentIndex === 0}
                 onClick={() => goTo(currentIndex - 1)}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-navy-600 bg-navy-800/80 px-4 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-blue-400 hover:text-accent-300 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-navy-600 bg-navy-800/80 px-4 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-blue-400 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <ChevronLeftIcon className="h-5 w-5" />
                 Sebelumnya
@@ -346,7 +346,7 @@ export default function TestEngine({ user, onFinish }) {
                 className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold border transition-colors ${
                   isFlagged
                     ? 'bg-amber-400 border-amber-400 text-navy-950'
-                    : 'border-amber-500/40 bg-navy-800/80 text-accent hover:bg-amber-500/10'
+                    : 'border-amber-500/40 bg-navy-800/80 text-amber-400 hover:bg-amber-500/10'
                 }`}
               >
                 <FlagIcon className="h-4 w-4" />
@@ -414,7 +414,7 @@ export default function TestEngine({ user, onFinish }) {
             <div className="px-6 py-5">
               <p className="text-sm text-slate-300 leading-relaxed">
                 Kamu <span className="font-bold text-red-400">pindah tab, buka aplikasi lain,
-                atau keluar dari layar tes</span> (termasuk coba screenshot). Sistem mencatatnya.
+                atau keluar dari layar tes</span> (termasuk coba screenshot). Gw catet nih yee.
               </p>
               <div className="mt-3 rounded-lg bg-navy-800 border border-navy-700 px-4 py-3 text-sm font-bold text-slate-200">
                 Pelanggaran ke-{tabSwitchCount} dari {MAX_TAB_SWITCH_WARNING} — kalau sampai
@@ -437,7 +437,7 @@ export default function TestEngine({ user, onFinish }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
           <div className="w-full max-w-md rounded-2xl bg-navy-900 border border-navy-800 shadow-2xl overflow-hidden">
             <div className="bg-blue-500/10 border-b border-blue-500/25 px-6 py-4">
-              <p className="font-display text-base font-semibold text-accent-300">Yakin mau dikumpulin?</p>
+              <p className="font-display text-base font-semibold text-amber-300">Yakin mau dikumpulin?</p>
             </div>
             <div className="px-6 py-5">
               <p className="text-sm text-slate-300 leading-relaxed">
@@ -480,7 +480,7 @@ export default function TestEngine({ user, onFinish }) {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 py-6 sm:items-center">
           <div className="w-full max-w-md rounded-2xl bg-navy-900 border border-navy-800 shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between bg-blue-500/10 border-b border-blue-500/25 px-5 py-4">
-              <p className="font-display text-base font-semibold text-accent-300">Lompat ke nomor…</p>
+              <p className="font-display text-base font-semibold text-amber-300">Lompat ke nomor…</p>
               <button
                 type="button"
                 onClick={() => setShowPalette(false)}

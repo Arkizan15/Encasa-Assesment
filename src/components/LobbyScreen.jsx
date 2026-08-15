@@ -40,7 +40,7 @@ export default function LobbyScreen({ user, onStart, onBack }) {
               <button
                 type="button"
                 onClick={onBack}
-                className="cursor-target inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-slate-400 transition-colors hover:text-accent"
+                className="cursor-target inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-slate-400 transition-colors hover:text-amber-400"
               >
                 <PencilSquareIcon className="h-4 w-4" />
                 Ubah data
@@ -49,12 +49,12 @@ export default function LobbyScreen({ user, onStart, onBack }) {
           </div>
 
           {/* Judul editorial */}
-          <p className="mt-12 text-[11px] font-bold uppercase tracking-[0.25em] text-accent">
+          <p className="mt-12 text-[11px] font-bold uppercase tracking-[0.25em] text-amber-400">
             Briefing sebelum tes
           </p>
           <h1 className="mt-3 text-4xl sm:text-5xl font-semibold text-cream-100 leading-[1.08]">
             Semua siap,{' '}
-            <em className="italic text-accent font-medium">{firstName}</em>?
+            <em className="italic text-amber-400 font-medium">{firstName}</em>?
           </h1>
           <p className="mt-4 max-w-xl text-sm sm:text-base leading-relaxed text-slate-400">
              Nggak ada yang perlu ditegangin, baca soalnya,
@@ -70,10 +70,10 @@ export default function LobbyScreen({ user, onStart, onBack }) {
             ].map((s, i) => (
               <div
                 key={s.label}
-                className={`hover-lift rounded-2xl bg-navy-900 border border-navy-800 px-4 py-5 text-center ${i === 1 ? 'animate-rise-1' : i === 2 ? 'animate-rise-2' : ''}`}
+                className={`hover-lift rounded-2xl bg-navy-900 border border-navy-800 overflow-hidden px-4 py-5 text-center ${i === 1 ? 'animate-rise-1' : i === 2 ? 'animate-rise-2' : ''}`}
               >
                 <p className="font-display text-2xl sm:text-3xl text-cream-100">{s.num}</p>
-                <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-accent">
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-amber-400">
                   {s.label}
                 </p>
                 <p className="mt-1 text-[10px] text-slate-500">{s.sub}</p>
@@ -82,7 +82,7 @@ export default function LobbyScreen({ user, onStart, onBack }) {
           </div>
 
           {/* Aturan main */}
-          <div className="animate-rise-3 mt-5 rounded-[24px] bg-navy-900 border border-navy-800 p-6 sm:p-7">
+          <div className="animate-rise-3 mt-5 rounded-[24px] bg-navy-900 border border-navy-800 overflow-hidden p-6 sm:p-7">
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
               Aturan main — singkat, jujur aja
             </p>
@@ -96,7 +96,7 @@ export default function LobbyScreen({ user, onStart, onBack }) {
                 'Hasil & skor masuk ke admin + tercatat di Google Sheets. Aman, nggak bocor.',
               ].map((rule) => (
                 <li key={rule} className="flex items-start gap-2.5 text-xs sm:text-sm leading-relaxed text-slate-300">
-                  <CheckCircleIcon className="text-accent mt-0.5 shrink-0 h-4 w-4" />
+                  <CheckCircleIcon className="text-amber-400 mt-0.5 shrink-0 h-4 w-4" />
                   {rule}
                 </li>
               ))}

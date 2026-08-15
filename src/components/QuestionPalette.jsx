@@ -22,7 +22,7 @@ function statusOf(index, questions, answers, flagged, currentIndex, expired) {
 const STATUS_CLASS = {
   answered: 'bg-blue-500 text-white border-blue-500',
   flagged: 'bg-amber-400 text-navy-950 border-amber-400',
-  current: 'bg-blue-500/20 text-accent-300 border-blue-400 ring-2 ring-blue-400/30',
+  current: 'bg-blue-500/20 text-amber-300 border-blue-400 ring-2 ring-blue-400/30',
   expired: 'bg-slate-500 text-slate-200 border-slate-500',
   unanswered: 'bg-navy-800 text-slate-300 border-navy-600 hover:border-blue-400',
 }
@@ -34,7 +34,7 @@ const STATUS_CLASS = {
  */
 export default function QuestionPalette({ questions = QUESTIONS, answers, flagged, expired, currentIndex, onJump }) {
   return (
-    <div className="bg-navy-900 rounded-2xl border border-navy-800 shadow-card p-5">
+    <div className="bg-navy-900 rounded-2xl border border-navy-800 shadow-card overflow-hidden p-5">
       <p className="font-display text-base font-semibold text-slate-100 mb-1">Navigasi</p>
       <p className="text-xs text-slate-500 mb-4">Langsung lompat ke nomor berapa pun.</p>
 

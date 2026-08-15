@@ -110,7 +110,7 @@ export default function ResultScreen({ user, answers, timeUsed, tabSwitchCount, 
                 draggable={false}
                 className="h-12 w-auto object-contain rounded-[15px]"
               />
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-accent">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-400">
                 Langkah 4 dari 4
               </p>
             </div>
@@ -126,7 +126,7 @@ export default function ResultScreen({ user, answers, timeUsed, tabSwitchCount, 
             {/* Loading: menghitung skor */}
             {status === 'loading' && (
               <div className="flex flex-col items-center gap-3 py-8">
-                <ArrowPathIcon className="text-accent h-10 w-10 animate-spin" />
+                <ArrowPathIcon className="text-amber-400 h-10 w-10 animate-spin" />
                 <p className="text-sm font-bold text-slate-200">Sebentar, lagi dihitung…</p>
                 <p className="text-xs text-slate-500">Jawabanmu dikirim & dinilai di server.</p>
               </div>
@@ -179,12 +179,12 @@ export default function ResultScreen({ user, answers, timeUsed, tabSwitchCount, 
                   {result.save?.ok ? (
                     <CheckCircleIcon className="text-emerald-400 h-5 w-5 mt-0.5 shrink-0" />
                   ) : (
-                    <InformationCircleIcon className="text-accent h-5 w-5 mt-0.5 shrink-0" />
+                    <InformationCircleIcon className="text-amber-400 h-5 w-5 mt-0.5 shrink-0" />
                   )}
                   <div>
                     <p
                       className={`text-xs font-bold ${
-                        result.save?.ok ? 'text-emerald-300' : 'text-accent-300'
+                        result.save?.ok ? 'text-emerald-300' : 'text-amber-300'
                       }`}
                     >
                       {result.save?.ok
@@ -234,7 +234,7 @@ export default function ResultScreen({ user, answers, timeUsed, tabSwitchCount, 
             {/* Ringkasan */}
             <div className="rounded-xl border border-navy-800 divide-y divide-navy-800">
               <div className="flex items-center gap-3 px-4 py-3">
-                <UserCircleIcon className="text-accent h-5 w-5" />
+                <UserCircleIcon className="text-amber-400 h-5 w-5" />
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
                     Nama
@@ -243,7 +243,7 @@ export default function ResultScreen({ user, answers, timeUsed, tabSwitchCount, 
                 </div>
               </div>
               <div className="flex items-center gap-3 px-4 py-3">
-                <BookOpenIcon className="text-accent h-5 w-5" />
+                <BookOpenIcon className="text-amber-400 h-5 w-5" />
                 <div>
                   <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
                     Kelas
@@ -254,7 +254,7 @@ export default function ResultScreen({ user, answers, timeUsed, tabSwitchCount, 
                 </div>
               </div>
               <div className="flex items-center gap-3 px-4 py-3">
-                <ClockIcon className="text-accent h-5 w-5" />
+                <ClockIcon className="text-amber-400 h-5 w-5" />
                 <div>
                   <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
                     Waktu Selesai
@@ -263,7 +263,7 @@ export default function ResultScreen({ user, answers, timeUsed, tabSwitchCount, 
                 </div>
               </div>
               <div className="flex items-center gap-3 px-4 py-3">
-                <CheckCircleIcon className="text-accent h-5 w-5" />
+                <CheckCircleIcon className="text-amber-400 h-5 w-5" />
                 <div>
                   <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
                     Durasi Pengerjaan
@@ -273,7 +273,7 @@ export default function ResultScreen({ user, answers, timeUsed, tabSwitchCount, 
               </div>
               <div className="flex items-center gap-3 px-4 py-3">
                 <ExclamationCircleIcon
-                  className={tabSwitchCount > 0 ? 'text-red-400 h-5 w-5' : 'text-accent h-5 w-5'}
+                  className={tabSwitchCount > 0 ? 'text-red-400 h-5 w-5' : 'text-amber-400 h-5 w-5'}
                 />
                 <div>
                   <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
@@ -305,9 +305,9 @@ export default function ResultScreen({ user, answers, timeUsed, tabSwitchCount, 
               className="cursor-target w-full flex items-center justify-between px-6 sm:px-8 py-5 text-left"
             >
               <div className="flex items-center gap-2.5">
-                <CheckCircleIcon className="text-accent h-5 w-5" />
+                <CheckCircleIcon className="text-amber-400 h-5 w-5" />
                 <p className="font-display text-lg font-semibold text-slate-100">Review jawaban</p>
-                <span className="rounded-full bg-blue-500/10 border border-blue-500/25 px-2 py-0.5 text-[11px] font-bold text-accent-300 tabular-nums">
+                <span className="rounded-full bg-blue-500/10 border border-blue-500/25 px-2 py-0.5 text-[11px] font-bold text-amber-300 tabular-nums">
                   {result.skor}/{result.total}
                 </span>
               </div>
@@ -325,7 +325,7 @@ export default function ResultScreen({ user, answers, timeUsed, tabSwitchCount, 
                     <div key={d.id} className="px-6 sm:px-8 py-4">
                       <div className="flex items-start justify-between gap-3">
                         <p className="font-display text-sm font-medium text-slate-200 leading-relaxed">
-                          <span className="text-accent mr-1.5">{i + 1}.</span>
+                          <span className="text-amber-400 mr-1.5">{i + 1}.</span>
                           {q.question}
                         </p>
                         <div className="flex items-center gap-2 shrink-0">

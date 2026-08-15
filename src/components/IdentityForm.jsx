@@ -44,12 +44,12 @@ export default function IdentityForm({ onSubmit, initialData }) {
               className="h-16 w-auto object-contain rounded-[15px]"
             />
 
-            <p className="mt-10 text-[11px] font-bold uppercase tracking-[0.25em] text-accent">
+            <p className="mt-10 text-[11px] font-bold uppercase tracking-[0.25em] text-amber-400">
               Encasa Grouping · Penerimaan Anggota 2026
             </p>
             <h1 className="mt-4 text-4xl sm:text-5xl lg:text-[3.4rem] font-semibold text-cream-100 leading-[1.08]">
               Kenalan dulu,{' '}
-              <em className="italic text-accent font-medium">biar nggak canggung.</em>
+              <em className="italic text-amber-400 font-medium">biar nggak canggung.</em>
             </h1>
             <p className="mt-5 max-w-md text-sm sm:text-base leading-relaxed text-slate-400">
               Ini tes diagnostik singkat buat lihat gaya belajar & potensi kamu.
@@ -82,13 +82,13 @@ export default function IdentityForm({ onSubmit, initialData }) {
 
           {/* ── Kanan: formulir ── */}
           <div className="animate-rise-2">
-            <div className="bg-navy-900 rounded-[28px] border border-navy-800 shadow-card p-7 sm:p-9">
+            <div className="bg-navy-900 rounded-[28px] border border-navy-800 shadow-card overflow-hidden p-7 sm:p-9">
               {/* Progres langkah */}
               <div className="flex items-center justify-between">
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
                   Langkah 1 dari 4
                 </p>
-                <p className="text-[11px] font-semibold text-accent">wajib diisi semua</p>
+                <p className="text-[11px] font-semibold text-amber-400">wajib diisi semua</p>
               </div>
               <div className="mt-3 h-1 rounded-full bg-navy-800">
                 <div className="h-full w-1/4 rounded-full bg-amber-400" />
@@ -103,7 +103,7 @@ export default function IdentityForm({ onSubmit, initialData }) {
                 {/* 01 — Nama Lengkap */}
                 <div>
                   <label htmlFor="nama" className="mb-1.5 flex items-baseline gap-2 text-sm font-semibold text-slate-300">
-                    <span className="font-display text-xs italic text-accent">01</span>
+                    <span className="font-display text-xs italic text-amber-400">01</span>
                     Nama lengkap <span className="text-red-400">*</span>
                   </label>
                   <input
@@ -126,7 +126,7 @@ export default function IdentityForm({ onSubmit, initialData }) {
                 {/* 02 — Tingkat (X / XI) */}
                 <div>
                   <label htmlFor="tingkat" className="mb-1.5 flex items-baseline gap-2 text-sm font-semibold text-slate-300">
-                    <span className="font-display text-xs italic text-accent">02</span>
+                    <span className="font-display text-xs italic text-amber-400">02</span>
                     Kelas (tingkat) <span className="text-red-400">*</span>
                   </label>
                   <CustomSelect
@@ -148,7 +148,7 @@ export default function IdentityForm({ onSubmit, initialData }) {
                 {/* 03 — Nama Kelas */}
                 <div>
                   <label htmlFor="kelas" className="mb-1.5 flex items-baseline gap-2 text-sm font-semibold text-slate-300">
-                    <span className="font-display text-xs italic text-accent">03</span>
+                    <span className="font-display text-xs italic text-amber-400">03</span>
                     Nama kelas <span className="text-red-400">*</span>
                   </label>
                   <CustomSelect

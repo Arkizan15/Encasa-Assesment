@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDownIcon } from '@heroicons/react/24/outline'
+import { ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 /**
  * Dropdown kustom (pengganti <select> native — panel default OS tidak bisa
  * di-styling). Dibangun murni dengan Tailwind, senada tema navy.
+ *
+ * Dua mode tampilan:
+ *  - Daftar pendek (≤6 opsi) → panel kecil tepat di bawah tombol.
+ *  - Daftar panjang (>6 opsi, mis. nama kelas) → FULL-SCREEN SHEET:
+ *    overlay gelap + panel tengah, agar tidak ada warna halaman asli
+ *    yang terlihat di bawah/samping panel.
  *
  * Navigasi keyboard lengkap:
  *  - ArrowDown/ArrowUp : buka dropdown (saat tertutup) / pindah sorotan
@@ -29,6 +35,10 @@ export default function CustomSelect({ id, value, placeholder, options = [], ico
   const selected = items.find((o) => o.value === value)
   const selectedIndex = selected ? items.findIndex((o) => o.value === value) : -1
 
+  // Daftar panjang → full-screen sheet supaya menutupi seluruh layar
+  const isSheet = items.length > 6
+  const sheetTitle = (placeholder || 'Pilih').replace(/…$/, '')
+
   const openDropdown = () => {
     setOpen(true)
     setHighlight(selectedIndex >= 0 ? selectedIndex : 0)
@@ -39,15 +49,17 @@ export default function CustomSelect({ id, value, placeholder, options = [], ico
     setOpen(false)
   }
 
-  // Tutup dropdown saat klik di luar
+  const close = () => setOpen(false)
+
+  // Tutup saat klik di luar (mode panel kecil)
   useEffect(() => {
-    if (!open) return
+    if (!open || isSheet) return
     const onPointerDown = (e) => {
       if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false)
     }
     document.addEventListener('mousedown', onPointerDown)
     return () => document.removeEventListener('mousedown', onPointerDown)
-  }, [open])
+  }, [open, isSheet])
 
   // Jaga opsi yang disorot tetap terlihat saat scroll (daftar panjang)
   useEffect(() => {
@@ -86,6 +98,15 @@ export default function CustomSelect({ id, value, placeholder, options = [], ico
     }
   }
 
+  const optionClass = (o, i) =>
+    `cursor-target w-full px-4 py-2.5 text-left text-sm transition-colors ${
+      o.value === value
+        ? 'bg-amber-500/15 text-amber-300'
+        : i === highlight
+          ? 'bg-navy-700 text-slate-100'
+          : 'text-slate-300 hover:bg-navy-700'
+    }`
+
   return (
     <div className="relative" ref={rootRef} onKeyDown={handleKeyDown}>
       {icon}
@@ -110,8 +131,8 @@ export default function CustomSelect({ id, value, placeholder, options = [], ico
         }`}
       />
 
-      {/* Daftar opsi */}
-      {open && (
+      {/* ── Mode panel kecil (daftar pendek) ── */}
+      {open && !isSheet && (
         <ul
           role="listbox"
           aria-labelledby={id}
@@ -129,13 +150,7 @@ export default function CustomSelect({ id, value, placeholder, options = [], ico
                   data-index={i}
                   onClick={() => selectOption(o)}
                   onMouseEnter={() => setHighlight(i)}
-                  className={`cursor-target w-full px-4 py-2.5 text-left text-sm transition-colors ${
-                    o.value === value
-                      ? 'bg-blue-500/15 text-accent-300'
-                      : i === highlight
-                        ? 'bg-navy-700 text-slate-100'
-                        : 'text-slate-300 hover:bg-navy-700'
-                  }`}
+                  className={optionClass(o, i)}
                 >
                   {o.label}
                 </button>
@@ -143,6 +158,64 @@ export default function CustomSelect({ id, value, placeholder, options = [], ico
             ))}
           </div>
         </ul>
+      )}
+
+      {/* ── Mode full-screen sheet (daftar panjang) ── */}
+      {open && isSheet && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6"
+          onClick={close}
+        >
+          <div
+            role="listbox"
+            aria-labelledby={id}
+            className="w-full max-w-md rounded-2xl bg-navy-900 border border-navy-800 shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header sheet */}
+            <div className="flex items-center justify-between bg-amber-500/10 border-b border-navy-700 px-5 py-4">
+              <p className="font-display text-base font-semibold text-slate-100">{sheetTitle}</p>
+              <button
+                type="button"
+                onClick={close}
+                aria-label="Tutup"
+                className="cursor-target text-slate-500 transition-colors hover:text-slate-300"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Daftar opsi */}
+            <div ref={listRef} className="max-h-[65vh] overflow-y-auto px-3 py-3">
+              {items.map((o, i) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  id={`${id}-option-${i}`}
+                  role="option"
+                  aria-selected={o.value === value}
+                  data-index={i}
+                  onClick={() => selectOption(o)}
+                  onMouseEnter={() => setHighlight(i)}
+                  className={`${optionClass(o, i)} rounded-lg`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Footer sheet */}
+            <div className="border-t border-navy-700 px-5 py-3">
+              <button
+                type="button"
+                onClick={close}
+                className="cursor-target w-full rounded-xl bg-navy-800 px-4 py-2.5 text-sm font-bold text-slate-300 transition-colors hover:bg-navy-700"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

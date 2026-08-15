@@ -42,7 +42,7 @@ export default function QuestionCard({ question, index, total, answer, onAnswer,
           <span className="font-sans text-sm font-medium text-slate-500"> / {total}</span>
         </p>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 border border-blue-500/25 px-3 py-1 text-[11px] font-semibold text-accent-300">
+          <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 border border-blue-500/25 px-3 py-1 text-[11px] font-semibold text-amber-300">
             <FlagIcon className="h-3.5 w-3.5" />
             {TYPE_LABEL[question.type]}
           </span>
@@ -53,7 +53,7 @@ export default function QuestionCard({ question, index, total, answer, onAnswer,
             <ClockIcon className="h-3.5 w-3.5" />
             {formatDuration(question.timeSeconds)}
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/25 px-3 py-1 text-[11px] font-semibold text-accent-300">
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/25 px-3 py-1 text-[11px] font-semibold text-amber-300">
             <TrophyIcon className="h-3.5 w-3.5" />
             {question.points} poin
           </span>
@@ -63,7 +63,7 @@ export default function QuestionCard({ question, index, total, answer, onAnswer,
       {/* Bacaan (untuk soal based on story/passage) */}
       {question.passage && (
         <div className="mx-6 mt-5 rounded-xl border border-blue-500/25 bg-blue-500/10 px-5 py-4">
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-accent-300">Bacaan</p>
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-amber-300">Bacaan</p>
           <p className="text-sm leading-relaxed text-slate-300 select-text whitespace-pre-line">
             {question.passage}
           </p>
@@ -76,7 +76,7 @@ export default function QuestionCard({ question, index, total, answer, onAnswer,
           {question.question}
         </p>
         {isMulti && (
-          <p className="mt-2 text-xs font-medium text-accent">
+          <p className="mt-2 text-xs font-medium text-amber-400">
             Jawaban bisa lebih dari satu — centang semua jawaban yang benar.
           </p>
         )}
@@ -107,7 +107,7 @@ export default function QuestionCard({ question, index, total, answer, onAnswer,
                 locked ? 'cursor-not-allowed opacity-70' : ''
               } ${
                 isChecked
-                  ? 'border-blue-400 bg-blue-500/15 text-accent-100'
+                  ? 'border-blue-400 bg-blue-500/15 text-amber-100'
                   : locked
                     ? 'border-navy-700 bg-navy-900/60 text-slate-500'
                     : 'border-navy-700 bg-navy-950/40 text-slate-300 hover:border-blue-400 hover:bg-blue-500/10 hover:-translate-y-0.5 active:translate-y-0'
