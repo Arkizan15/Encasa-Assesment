@@ -310,8 +310,8 @@ export default async function handler(req, res) {
     return
   }
 
-  // 4) Hitung skor server-side
-  const { skor, total, persentase, detail } = scoreTest(answersCheck.answers)
+  // 4) Hitung skor server-side (berbasis poin, maks 300)
+  const { skor, total, persentase, correctCount, detail } = scoreTest(answersCheck.answers)
 
   // 5) Simpan ke Google Sheets — kegagalan simpan TIDAK menggagalkan skor
   let save = { ok: false, reason: 'error', message: 'Gagal menyimpan hasil.' }
@@ -330,5 +330,5 @@ export default async function handler(req, res) {
     save = { ok: false, reason: 'error', message: err.message }
   }
 
-  res.status(200).json({ ok: true, skor, total, persentase, detail, save })
+  res.status(200).json({ ok: true, skor, total, persentase, correctCount, detail, save })
 }

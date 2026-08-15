@@ -5,7 +5,7 @@ Web Tes Diagnostik Online dengan **Sistem Anti-Cheat**, integrasi **Google Sheet
 ## Tech Stack
 
 - **Framework:** Vite + React (JavaScript)
-- **Styling:** Tailwind CSS v3 — tema biru flat (tanpa gradient), font **Inter**
+- **Styling:** Tailwind CSS v3 — tema dark navy editorial (tanpa gradient), font pairing **Fraunces** (display serif) + **Plus Jakarta Sans** (body humanis)
 - **Icons:** Bootstrap Icons (`react-icons/bi`)
 - **Deployment:** Vercel (termasuk Serverless Functions di `/api` untuk FASE 4)
 

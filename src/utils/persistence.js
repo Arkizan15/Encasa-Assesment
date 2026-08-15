@@ -40,8 +40,11 @@ export function loadTestState() {
       Number.isInteger(data.currentIndex) && data.currentIndex >= 0 ? data.currentIndex : 0,
     answers: data.answers && typeof data.answers === 'object' ? data.answers : {},
     flagged: Array.isArray(data.flagged) ? data.flagged : [],
+    expiredQuestions: Array.isArray(data.expiredQuestions) ? data.expiredQuestions : [],
     tabSwitchCount: Number.isFinite(data.tabSwitchCount) ? data.tabSwitchCount : 0,
     testStartedAt: Number.isFinite(data.testStartedAt) ? data.testStartedAt : null,
+    // waktu mulai soal aktif — agar timer per soal tetap akurat saat refresh
+    questionStartedAt: Number.isFinite(data.questionStartedAt) ? data.questionStartedAt : null,
     // seed pengacakan urutan soal/opsi — disimpan agar stabil saat refresh
     seed: Number.isFinite(data.seed) ? data.seed : null,
   }
@@ -51,14 +54,25 @@ export function saveTestState({
   currentIndex,
   answers,
   flagged,
+  expiredQuestions,
   tabSwitchCount,
   testStartedAt,
+  questionStartedAt,
   seed,
 }) {
   try {
     localStorage.setItem(
       TEST_KEY,
-      JSON.stringify({ currentIndex, answers, flagged, tabSwitchCount, testStartedAt, seed })
+      JSON.stringify({
+        currentIndex,
+        answers,
+        flagged,
+        expiredQuestions,
+        tabSwitchCount,
+        testStartedAt,
+        questionStartedAt,
+        seed,
+      })
     )
   } catch {
     // abaikan

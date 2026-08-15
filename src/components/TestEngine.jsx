@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  BiTimeFive,
-  BiFlag,
-  BiGridAlt,
-  BiChevronLeft,
-  BiChevronRight,
-  BiCheckDouble,
-  BiErrorCircle,
-  BiX,
-  BiUserCircle,
-} from 'react-icons/bi'
+  FlagIcon,
+  Squares2X2Icon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ExclamationCircleIcon,
+  XMarkIcon,
+  UserCircleIcon,
+} from '@heroicons/react/24/outline'
+import { ClockIcon, CheckIcon } from '@heroicons/react/24/solid'
 import { QUESTIONS } from '../data/questions.js'
-import { TEST_DURATION_SECONDS, MAX_TAB_SWITCH_WARNING } from '../utils/constants.js'
+import { MAX_TAB_SWITCH_WARNING } from '../utils/constants.js'
 import { formatTime } from '../utils/formatTime.js'
 import { loadTestState, saveTestState, clearTestState } from '../utils/persistence.js'
 import { seededShuffle, randomSeed } from '../utils/shuffle.js'
@@ -37,6 +36,18 @@ export default function TestEngine({ user, onFinish }) {
   const [showSubmitModal, setShowSubmitModal] = useState(false)
   const [showPalette, setShowPalette] = useState(false)
 
+  // Waktu mulai soal aktif — di-reset tiap pindah soal; dipersist agar timer
+  // per soal tetap akurat kalau halaman di-refresh.
+  const [questionStartedAt, setQuestionStartedAt] = useState(
+    () => saved?.questionStartedAt ?? Date.now()
+  )
+
+  // Soal yang waktu pengerjaannya sudah habis → terkunci, tidak bisa dijawab
+  // lagi (dipersist agar tetap terkunci saat refresh).
+  const [expiredQuestions, setExpiredQuestions] = useState(
+    () => new Set(saved?.expiredQuestions ?? [])
+  )
+
   // Seed pengacakan — tetap sama untuk satu sesi (stabil saat refresh)
   const [seed] = useState(() => saved?.seed ?? randomSeed())
 
@@ -50,11 +61,15 @@ export default function TestEngine({ user, onFinish }) {
   // Ref agar callback auto-submit selalu membaca state terbaru + cegah double-submit
   const answersRef = useRef(answers)
   answersRef.current = answers
-  const secondsLeftRef = useRef(TEST_DURATION_SECONDS)
+  const currentIndexRef = useRef(currentIndex)
+  currentIndexRef.current = currentIndex
   const onFinishRef = useRef(onFinish)
   onFinishRef.current = onFinish
   const tabSwitchCountRef = useRef(0)
   const finishedRef = useRef(false)
+  const expiredRef = useRef(expiredQuestions)
+  expiredRef.current = expiredQuestions
+  const currentQuestionIdRef = useRef(null)
 
   const finish = useCallback((reason) => {
     if (finishedRef.current) return
@@ -63,17 +78,56 @@ export default function TestEngine({ user, onFinish }) {
     setShowSubmitModal(false)
     onFinishRef.current({
       answers: answersRef.current,
-      timeUsed: TEST_DURATION_SECONDS - secondsLeftRef.current,
+      timeUsed: Math.floor((Date.now() - testStartedAtRef.current) / 1000),
       tabSwitchCount: tabSwitchCountRef.current,
       reason,
     })
   }, [])
 
-  // Sisa waktu dihitung dari waktu mulai, bukan direset — aman saat refresh
-  const initialSeconds = Math.max(
-    0,
-    TEST_DURATION_SECONDS - Math.floor((Date.now() - testStartedAtRef.current) / 1000)
+  // Pindah ke soal lain — reset waktu mulai soal baru (timer per soal)
+  const goTo = useCallback(
+    (index) => {
+      const next = Math.max(0, Math.min(index, orderedQuestions.length - 1))
+      if (next === currentIndexRef.current) return
+      setCurrentIndex(next)
+      setQuestionStartedAt(Date.now())
+    },
+    [orderedQuestions.length]
   )
+
+  // Soal aktif + sisa waktunya (timer per soal — dihitung dari waktu mulai
+  // soal; aman saat refresh karena questionStartedAt tersimpan).
+  const question = orderedQuestions[currentIndex]
+  currentQuestionIdRef.current = question.id
+  const isExpired = expiredQuestions.has(question.id)
+  const initialSeconds = isExpired
+    ? 0 // soal kadaluarsa tidak menghidupkan timer lagi
+    : Math.max(
+        0,
+        question.timeSeconds - Math.floor((Date.now() - questionStartedAt) / 1000)
+      )
+
+  // Waktu soal habis → soal dikunci (tak bisa dijawab lagi) + auto-lanjut ke
+  // soal berikutnya; kalau sudah soal terakhir → tes dikumpulkan otomatis.
+  const onQuestionExpire = useCallback(() => {
+    if (finishedRef.current) return
+    const currentId = currentQuestionIdRef.current
+    // Sekadar melihat ulang soal yang sudah kadaluarsa → jangan auto-lanjut lagi
+    if (currentId != null && expiredRef.current.has(currentId)) return
+    if (currentId != null) {
+      setExpiredQuestions((prev) => {
+        if (prev.has(currentId)) return prev
+        const next = new Set(prev)
+        next.add(currentId)
+        return next
+      })
+    }
+    if (currentIndexRef.current >= orderedQuestions.length - 1) {
+      finish('timeout')
+    } else {
+      goTo(currentIndexRef.current + 1)
+    }
+  }, [finish, goTo, orderedQuestions.length])
 
   const { tabSwitchCount, warningOpen, dismissWarning } = useAntiCheat({
     maxWarnings: MAX_TAB_SWITCH_WARNING,
@@ -84,7 +138,7 @@ export default function TestEngine({ user, onFinish }) {
       clearTestState()
       onFinishRef.current({
         answers: answersRef.current,
-        timeUsed: TEST_DURATION_SECONDS - secondsLeftRef.current,
+        timeUsed: Math.floor((Date.now() - testStartedAtRef.current) / 1000),
         tabSwitchCount: count,
         reason: 'violation',
       })
@@ -94,9 +148,9 @@ export default function TestEngine({ user, onFinish }) {
 
   const { secondsLeft } = useCountdown({
     initialSeconds,
-    onExpire: () => finish('timeout'),
+    resetKey: question.id,
+    onExpire: onQuestionExpire,
   })
-  secondsLeftRef.current = secondsLeft
 
   // Simpan progres setiap ada perubahan → survive refresh
   useEffect(() => {
@@ -104,11 +158,13 @@ export default function TestEngine({ user, onFinish }) {
       currentIndex,
       answers,
       flagged: [...flagged],
+      expiredQuestions: [...expiredQuestions],
       tabSwitchCount,
       testStartedAt: testStartedAtRef.current,
+      questionStartedAt,
       seed,
     })
-  }, [currentIndex, answers, flagged, tabSwitchCount, seed])
+  }, [currentIndex, answers, flagged, expiredQuestions, tabSwitchCount, questionStartedAt, seed])
 
   // Peringatan saat user mencoba menutup / me-refresh halaman di tengah tes
   useEffect(() => {
@@ -143,7 +199,6 @@ export default function TestEngine({ user, onFinish }) {
     }
   }, [])
 
-  const question = orderedQuestions[currentIndex]
   const answer = answers[question.id]
   const isFlagged = flagged.has(question.id)
   const unansweredCount = orderedQuestions.filter((q) => {
@@ -151,7 +206,10 @@ export default function TestEngine({ user, onFinish }) {
     return q.type === 'multiple_select' ? !Array.isArray(a) || a.length === 0 : a == null
   }).length
 
-  const setAnswer = (value) => setAnswers((prev) => ({ ...prev, [question.id]: value }))
+  const setAnswer = (value) => {
+    if (expiredQuestions.has(question.id)) return // soal kadaluarsa terkunci
+    setAnswers((prev) => ({ ...prev, [question.id]: value }))
+  }
 
   const toggleFlag = () => {
     setFlagged((prev) => {
@@ -162,26 +220,26 @@ export default function TestEngine({ user, onFinish }) {
     })
   }
 
-  const lowTime = secondsLeft <= 5 * 60
+  const lowTime = secondsLeft <= 30
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col select-none">
+    <div className="min-h-screen bg-navy-950/70 flex flex-col select-none">
       {/* ── Header sticky ─────────────────────────────── */}
-      <header className="sticky top-0 z-20 bg-white border-b border-slate-200">
+      <header className="sticky top-0 z-20 bg-navy-900/95 backdrop-blur border-b border-navy-800">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <img
               src="/logo-encasa.png"
               alt="Logo Encasa"
               draggable={false}
-              className="h-8 sm:h-9 w-auto object-contain shrink-0"
+              className="h-8 sm:h-9 w-auto object-contain shrink-0 rounded-[15px]"
             />
             <div className="min-w-0">
-              <p className="text-sm font-extrabold text-blue-700 leading-tight truncate">
+              <p className="font-display text-lg font-semibold text-cream-100 leading-tight truncate">
                 Tes Diagnostik
               </p>
-              <p className="flex items-center gap-1 text-xs text-slate-500 truncate">
-                <BiUserCircle className="shrink-0" />
+              <p className="flex items-center gap-1 text-xs text-slate-400 truncate">
+                <UserCircleIcon className="h-4 w-4 shrink-0" />
                 {user.nama} · {user.tingkat} {user.kelas}
               </p>
             </div>
@@ -192,12 +250,12 @@ export default function TestEngine({ user, onFinish }) {
             <div
               className={`hidden sm:flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold border ${
                 tabSwitchCount > 0
-                  ? 'bg-red-50 border-red-200 text-red-700'
-                  : 'bg-slate-50 border-slate-200 text-slate-500'
+                  ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                  : 'bg-navy-800 border-navy-700 text-slate-400'
               }`}
               title="Jumlah pelanggaran pindah tab"
             >
-              <BiErrorCircle className="text-sm" />
+              <ExclamationCircleIcon className="h-4 w-4" />
               {tabSwitchCount}/{MAX_TAB_SWITCH_WARNING}
             </div>
 
@@ -206,27 +264,32 @@ export default function TestEngine({ user, onFinish }) {
               type="button"
               onClick={() => setShowPalette(true)}
               aria-label="Buka navigasi soal"
-              className="lg:hidden inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white p-2 text-slate-600 transition-colors hover:border-blue-400 hover:text-blue-700"
+              className="lg:hidden inline-flex items-center justify-center rounded-lg border border-navy-600 bg-navy-800 p-2 text-slate-300 transition-colors hover:border-blue-400 hover:text-accent-300"
             >
-              <BiGridAlt className="text-xl" />
+              <Squares2X2Icon className="h-5 w-5" />
             </button>
 
-            {/* Timer */}
+            {/* Timer per soal */}
             <div
+              title={
+                isExpired
+                  ? 'Waktu soal ini sudah habis — tidak bisa dijawab lagi'
+                  : `Sisa waktu soal ini (${question.timeSeconds / 60} menit)`
+              }
               className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-bold tabular-nums ${
-                lowTime ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'
+                lowTime || isExpired ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
               }`}
             >
-              <BiTimeFive className="text-base" />
-              {formatTime(secondsLeft)}
+              <ClockIcon className="h-4 w-4" />
+              {isExpired ? 'Waktu Habis' : formatTime(secondsLeft)}
             </div>
 
             <button
               type="button"
               onClick={() => setShowSubmitModal(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-slate-700"
+              className="cursor-target hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-amber-400 px-4 py-2 text-xs font-bold text-navy-950 transition-colors hover:bg-amber-300"
             >
-              <BiCheckDouble className="text-sm" />
+              <CheckIcon className="h-4 w-4" />
               Selesai
             </button>
           </div>
@@ -238,16 +301,16 @@ export default function TestEngine({ user, onFinish }) {
         {/* Progress bar ala Quizizz */}
         <div className="mb-5">
           <div className="flex items-center justify-between mb-1.5">
-            <p className="text-xs font-bold text-slate-600">
-              Soal <span className="text-blue-700">{currentIndex + 1}</span> dari {QUESTIONS.length}
+            <p className="text-xs font-bold text-slate-400">
+              Soal <span className="text-accent">{currentIndex + 1}</span> dari {QUESTIONS.length}
             </p>
-            <p className="text-xs font-bold text-slate-500 tabular-nums">
+            <p className="text-xs font-bold text-slate-400 tabular-nums">
               {Math.round(((currentIndex + 1) / QUESTIONS.length) * 100)}%
             </p>
           </div>
-          <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden">
+          <div className="h-1.5 rounded-full bg-navy-800 overflow-hidden">
             <div
-              className="h-full rounded-full bg-blue-600 transition-all duration-300"
+              className="h-full rounded-full bg-blue-500 transition-all duration-300"
               style={{ width: `${((currentIndex + 1) / QUESTIONS.length) * 100}%` }}
             />
           </div>
@@ -262,6 +325,7 @@ export default function TestEngine({ user, onFinish }) {
               total={QUESTIONS.length}
               answer={answer}
               onAnswer={setAnswer}
+              locked={isExpired}
             />
 
             {/* Navigasi bawah */}
@@ -269,10 +333,10 @@ export default function TestEngine({ user, onFinish }) {
               <button
                 type="button"
                 disabled={currentIndex === 0}
-                onClick={() => setCurrentIndex((i) => i - 1)}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:border-blue-400 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                onClick={() => goTo(currentIndex - 1)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-navy-600 bg-navy-800/80 px-4 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-blue-400 hover:text-accent-300 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                <BiChevronLeft className="text-lg" />
+                <ChevronLeftIcon className="h-5 w-5" />
                 Sebelumnya
               </button>
 
@@ -281,30 +345,30 @@ export default function TestEngine({ user, onFinish }) {
                 onClick={toggleFlag}
                 className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold border transition-colors ${
                   isFlagged
-                    ? 'bg-amber-400 border-amber-400 text-white'
-                    : 'border-amber-300 bg-white text-amber-600 hover:bg-amber-50'
+                    ? 'bg-amber-400 border-amber-400 text-navy-950'
+                    : 'border-amber-500/40 bg-navy-800/80 text-accent hover:bg-amber-500/10'
                 }`}
               >
-                <BiFlag className="text-base" />
+                <FlagIcon className="h-4 w-4" />
                 {isFlagged ? 'Tandai Selesai Ragu' : 'Ragu-Ragu'}
               </button>
 
               {currentIndex < QUESTIONS.length - 1 ? (
                 <button
                   type="button"
-                  onClick={() => setCurrentIndex((i) => i + 1)}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-700"
+                  onClick={() => goTo(currentIndex + 1)}
+                  className="cursor-target inline-flex items-center gap-1.5 rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-bold text-navy-950 transition-colors hover:bg-amber-300"
                 >
                   Selanjutnya
-                  <BiChevronRight className="text-lg" />
+                  <ChevronRightIcon className="h-5 w-5" />
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={() => setShowSubmitModal(true)}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-700 sm:hidden"
+                  className="cursor-target inline-flex items-center gap-1.5 rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-bold text-navy-950 transition-colors hover:bg-amber-300 sm:hidden"
                 >
-                  <BiCheckDouble className="text-lg" />
+                  <CheckIcon className="h-5 w-5" />
                   Selesai
                 </button>
               )}
@@ -318,16 +382,17 @@ export default function TestEngine({ user, onFinish }) {
               questions={orderedQuestions}
               answers={answers}
               flagged={flagged}
+              expired={expiredQuestions}
               currentIndex={currentIndex}
-              onJump={setCurrentIndex}
+              onJump={goTo}
             />
             <button
               type="button"
               onClick={() => setShowSubmitModal(true)}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-700"
+              className="cursor-target w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 py-3 text-sm font-bold text-navy-950 transition-colors hover:bg-amber-300"
             >
-              <BiCheckDouble className="text-base" />
-              Kumpulkan Jawaban
+              <CheckIcon className="h-4 w-4" />
+              Kumpulin sekarang
             </button>
           </aside>
         </div>
@@ -335,33 +400,32 @@ export default function TestEngine({ user, onFinish }) {
 
       {/* ── Modal peringatan pindah tab ───────────────── */}
       {warningOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between bg-red-50 border-b border-red-100 px-6 py-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-navy-900 border border-navy-800 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between bg-red-500/10 border-b border-red-500/25 px-6 py-4">
               <div className="flex items-center gap-2">
-                <BiErrorCircle className="text-red-600 text-xl" />
-                <p className="text-sm font-bold text-red-700">Peringatan Anti-Cheat</p>
+                <ExclamationCircleIcon className="text-red-400 h-5 w-5" />
+                <p className="font-display text-base font-semibold text-red-300">Hei, kelihatan nih…</p>
               </div>
-              <button type="button" onClick={dismissWarning} className="text-red-400 hover:text-red-600">
-                <BiX className="text-xl" />
+              <button type="button" onClick={dismissWarning} className="text-red-400/70 hover:text-red-300">
+                <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
             <div className="px-6 py-5">
-              <p className="text-sm text-slate-700 leading-relaxed">
-                Kamu terdeteksi <span className="font-bold text-red-600">berpindah tab, membuka
-                aplikasi lain, atau keluar dari layar tes</span> (termasuk mencoba screenshot)
-                selama tes berlangsung.
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Kamu <span className="font-bold text-red-400">pindah tab, buka aplikasi lain,
+                atau keluar dari layar tes</span> (termasuk coba screenshot). Sistem mencatatnya.
               </p>
-              <div className="mt-3 rounded-lg bg-slate-50 border border-slate-200 px-4 py-3 text-sm font-bold text-slate-800">
-                Pelanggaran: {tabSwitchCount} dari {MAX_TAB_SWITCH_WARNING} — tes akan
-                dikumpulkan otomatis jika mencapai batas.
+              <div className="mt-3 rounded-lg bg-navy-800 border border-navy-700 px-4 py-3 text-sm font-bold text-slate-200">
+                Pelanggaran ke-{tabSwitchCount} dari {MAX_TAB_SWITCH_WARNING} — kalau sampai
+                batas, tes langsung dikumpulin otomatis.
               </div>
               <button
                 type="button"
                 onClick={dismissWarning}
-                className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-700"
+                className="cursor-target mt-4 w-full rounded-xl bg-amber-400 px-4 py-3 text-sm font-bold text-navy-950 transition-colors hover:bg-amber-300"
               >
-                OK, Saya Lanjutkan
+            Oke, lanjut lagi
               </button>
             </div>
           </div>
@@ -370,40 +434,40 @@ export default function TestEngine({ user, onFinish }) {
 
       {/* ── Modal konfirmasi kumpulkan ────────────────── */}
       {showSubmitModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
-            <div className="bg-blue-50 border-b border-blue-100 px-6 py-4">
-              <p className="text-sm font-bold text-blue-800">Kumpulkan Jawaban?</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-navy-900 border border-navy-800 shadow-2xl overflow-hidden">
+            <div className="bg-blue-500/10 border-b border-blue-500/25 px-6 py-4">
+              <p className="font-display text-base font-semibold text-accent-300">Yakin mau dikumpulin?</p>
             </div>
             <div className="px-6 py-5">
-              <p className="text-sm text-slate-700 leading-relaxed">
-                Kamu yakin ingin mengumpulkan tes sekarang?
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Setelah dikumpulin, jawaban nggak bisa diubah lagi, ya.
               </p>
-              <div className="mt-3 rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
-                <p className="text-xs text-slate-500">
+              <div className="mt-3 rounded-lg bg-navy-800 border border-navy-700 px-4 py-3">
+                <p className="text-xs text-slate-400">
                   Soal belum dijawab:{' '}
-                  <span className="font-bold text-slate-800">{unansweredCount}</span> dari{' '}
+                  <span className="font-bold text-slate-100">{unansweredCount}</span> dari{' '}
                   {QUESTIONS.length}
                 </p>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-400 mt-1">
                   Soal ditandai ragu-ragu:{' '}
-                  <span className="font-bold text-slate-800">{flagged.size}</span>
+                  <span className="font-bold text-slate-100">{flagged.size}</span>
                 </p>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setShowSubmitModal(false)}
-                  className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
+                  className="rounded-xl border border-navy-600 bg-navy-800 px-4 py-3 text-sm font-bold text-slate-300 transition-colors hover:bg-navy-700"
                 >
                   Batal
                 </button>
                 <button
                   type="button"
                   onClick={() => finish('manual')}
-                  className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-700"
+                  className="cursor-target rounded-xl bg-amber-400 px-4 py-3 text-sm font-bold text-navy-950 transition-colors hover:bg-amber-300"
                 >
-                  Kumpulkan
+                  Iya, kumpulin!
                 </button>
               </div>
             </div>
@@ -413,17 +477,17 @@ export default function TestEngine({ user, onFinish }) {
 
       {/* ── Modal navigasi soal (mobile) ────────────────── */}
       {showPalette && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 px-4 py-6 sm:items-center">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between bg-blue-50 border-b border-blue-100 px-5 py-4">
-              <p className="text-sm font-bold text-blue-800">Navigasi Soal</p>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 py-6 sm:items-center">
+          <div className="w-full max-w-md rounded-2xl bg-navy-900 border border-navy-800 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between bg-blue-500/10 border-b border-blue-500/25 px-5 py-4">
+              <p className="font-display text-base font-semibold text-accent-300">Lompat ke nomor…</p>
               <button
                 type="button"
                 onClick={() => setShowPalette(false)}
                 aria-label="Tutup navigasi soal"
-                className="text-slate-400 transition-colors hover:text-slate-600"
+                className="text-slate-500 transition-colors hover:text-slate-300"
               >
-                <BiX className="text-xl" />
+                <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
             <div className="max-h-[65vh] overflow-y-auto px-5 py-5">
@@ -431,24 +495,25 @@ export default function TestEngine({ user, onFinish }) {
                 questions={orderedQuestions}
                 answers={answers}
                 flagged={flagged}
+                expired={expiredQuestions}
                 currentIndex={currentIndex}
                 onJump={(i) => {
-                  setCurrentIndex(i)
+                  goTo(i)
                   setShowPalette(false)
                 }}
               />
             </div>
-            <div className="border-t border-slate-100 px-5 py-4">
+            <div className="border-t border-navy-700 px-5 py-4">
               <button
                 type="button"
                 onClick={() => {
                   setShowPalette(false)
                   setShowSubmitModal(true)
                 }}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-700"
+                className="cursor-target w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 py-3 text-sm font-bold text-navy-950 transition-colors hover:bg-amber-300"
               >
-                <BiCheckDouble className="text-base" />
-                Kumpulkan Jawaban
+                <CheckIcon className="h-4 w-4" />
+                Kumpulin sekarang
               </button>
             </div>
           </div>

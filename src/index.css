@@ -2,13 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Font Inter di-host sendiri (tanpa Google Fonts CDN — lebih cepat & privat) */
+/* Font pairing ekspresif (self-hosted, tanpa CDN — lebih cepat & privat):
+ * Fraunces (serif display variabel + italic) untuk judul/angka besar,
+ * Plus Jakarta Sans (humanis variabel) untuk body & UI. */
 @font-face {
-  font-family: 'Inter';
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/fraunces-variable.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/fraunces-italic-variable.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
   font-style: normal;
   font-weight: 400 800;
   font-display: swap;
-  src: url('/fonts/inter-variable.woff2') format('woff2');
+  src: url('/fonts/plus-jakarta-sans-variable.woff2') format('woff2');
 }
 
 @layer base {
@@ -18,8 +34,69 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-800 font-sans;
+    @apply bg-navy-950 text-slate-200 font-sans;
   }
+
+  /* Judul display memakai serif Fraunces */
+  h1, h2, h3 {
+    @apply font-display;
+  }
+
+  /* Hilangkan outline default browser di semua elemen. */
+  *:focus,
+  *:focus-visible {
+    outline: none;
+  }
+
+  /* Hilangkan warna border di SEMUA komponen — border hanya penentu tata
+   * letak (width), warnanya dibuat transparan (kartu, divider, input, badge).
+   * KECUALI .target-cursor-corner: bracket kursor target harus tetap berwarna
+   * (warnanya di-set inline oleh TargetCursor). */
+  *:not(.target-cursor-corner),
+  *:not(.target-cursor-corner)::before,
+  *:not(.target-cursor-corner)::after {
+    border-color: transparent !important;
+  }
+
+  /* Sorotan teks senada tema biru */
+  ::selection {
+    background: rgb(59 130 246 / 0.35);
+    color: #f1f5f9;
+  }
+}
+
+/* ── Micro-interaction: animasi masuk halus (rise) untuk blok konten ── */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-rise-1 {
+  animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+.animate-rise-2 {
+  animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+.animate-rise-3 {
+  animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+
+/* Micro-interaction: kartu terangkat halus saat di-hover */
+.hover-lift {
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
 /* ── Anti-cheat: lapisan kedua blokir cetak (Ctrl/Cmd+P sudah diblokir via JS) ──
