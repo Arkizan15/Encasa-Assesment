@@ -10,6 +10,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import submitScore from './api/submit-score.js'
+import testSession from './api/test-session.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DIST = path.join(__dirname, 'dist')
@@ -38,7 +39,7 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`)
 
   // ── API (adaptasi res Node → style Vercel/Express) ──
-  if (url.pathname === '/api/submit-score') {
+  if (url.pathname === '/api/submit-score' || url.pathname === '/api/test-session') {
     req.body = await readBody(req)
     const expressRes = {
       status(code) {
@@ -51,7 +52,8 @@ const server = http.createServer(async (req, res) => {
         }
       },
     }
-    await submitScore(req, expressRes)
+    const handler = url.pathname === '/api/test-session' ? testSession : submitScore
+    await handler(req, expressRes)
     return
   }
 

@@ -76,7 +76,7 @@ export default function IdentityForm({ onSubmit, initialData }) {
                     setNama(e.target.value)
                     if (errors.nama) setErrors((prev) => ({ ...prev, nama: null }))
                   }}
-                  placeholder="Contoh: Budi Santoso"
+                  placeholder="Contoh: Arkan Rifqy fauzan"
                   autoComplete="name"
                   className={`w-full rounded-xl border bg-white pl-10 pr-4 py-3 text-sm outline-none transition-colors placeholder:text-slate-400 focus:ring-2 ${
                     errors.nama
@@ -177,6 +177,7 @@ export default function IdentityForm({ onSubmit, initialData }) {
                   'Dilarang berpindah tab / membuka aplikasi lain selama tes.',
                   'Dilarang copy-paste & klik kanan — sistem akan memblokir otomatis.',
                   'Tes akan dikumpulkan otomatis saat waktu habis.',
+                  'Awoakokwoakaowak gak bisa ngecheat.'
                 ].map((rule) => (
                   <li key={rule} className="flex items-start gap-2 text-xs text-blue-900/80">
                     <BiCheckCircle className="text-blue-600 mt-0.5 shrink-0" />
@@ -198,7 +199,7 @@ export default function IdentityForm({ onSubmit, initialData }) {
         </div>
 
         <p className="mt-5 text-center text-xs text-slate-400">
-          © {new Date().getFullYear()} Encasa Assessment by Arkan Rifqy Fauzan
+          Encasa Assessment by Arkan Rifqy Fauzan
         </p>
       </div>
     </div>

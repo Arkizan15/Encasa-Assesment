@@ -7,9 +7,9 @@ import { QUESTIONS } from '../data/questions.js'
  *  - current    → ring biru
  *  - unanswered → putih
  */
-function statusOf(index, answers, flagged, currentIndex) {
+function statusOf(index, questions, answers, flagged, currentIndex) {
   if (currentIndex === index) return 'current'
-  const q = QUESTIONS[index]
+  const q = questions[index]
   const a = answers[q.id]
   const answered = q.type === 'multiple_select' ? Array.isArray(a) && a.length > 0 : a != null
   if (flagged.has(q.id)) return 'flagged'
@@ -26,16 +26,17 @@ const STATUS_CLASS = {
 
 /**
  * FASE 2 — Navigasi soal & legend.
+ * `questions` = urutan soal yang sedang ditampilkan (bisa sudah diacak).
  */
-export default function QuestionPalette({ answers, flagged, currentIndex, onJump }) {
+export default function QuestionPalette({ questions = QUESTIONS, answers, flagged, currentIndex, onJump }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-card p-5">
       <p className="text-sm font-bold text-slate-900 mb-1">Navigasi Soal</p>
       <p className="text-xs text-slate-400 mb-4">Ketuk nomor untuk melompat ke soal.</p>
 
       <div className="grid grid-cols-6 gap-2">
-        {QUESTIONS.map((q, i) => {
-          const status = statusOf(i, answers, flagged, currentIndex)
+        {questions.map((q, i) => {
+          const status = statusOf(i, questions, answers, flagged, currentIndex)
           return (
             <button
               key={q.id}

@@ -1,60 +1,55 @@
 /**
- * FASE 4 — Kirim hasil tes ke Google Sheets.
+ * Kirim JAWABAN tes ke server — skor dihitung server-side (kunci jawaban
+ * tidak pernah dikirim ke browser).
  *
- * Urutan percobaan:
- *   1. POST /api/submit-score (serverless / server lokal)
- *   2. Jika gagal/belum terkonfigurasi → POST langsung ke Apps Script Web App
- *      (butuh env VITE_APPS_SCRIPT_URL saat build — lihat .env.example)
+ * Alur:
+ *   1. POST /api/test-session { kelas } → dapat token sesi (HMAC).
+ *   2. POST /api/submit-score { nama, kelas, answers, ..., token } → server
+ *      menghitung skor, menyimpan ke Google Sheets, lalu mengembalikan skor
+ *      + detail review.
  *
- * @param {Object} payload { nama, kelas, skor, total, persentase, durasi, pelanggaranTab, status }
- * @returns {Promise<{ok: boolean, reason?: string, message?: string}>}
+ * @param {Object} payload { nama, kelas, answers, timeUsed, tabSwitchCount, status }
+ * @returns {Promise<Object>} { ok, skor?, total?, persentase?, detail?, save?, reason?, message? }
  */
 export async function submitScore(payload) {
-  const directUrl = import.meta.env.VITE_APPS_SCRIPT_URL
+  let token = null
 
-  // 1) Lewat server /api
+  // 1) Minta token sesi tes
+  try {
+    const sessionRes = await fetch('/api/test-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kelas: payload.kelas }),
+    })
+    const session = await sessionRes.json().catch(() => ({}))
+    if (session.ok && session.token) token = session.token
+  } catch {
+    /* token gagal → submit tetap dicoba, server akan menolak tanpa token */
+  }
+
+  // 2) Kirim jawaban + token
   try {
     const res = await fetch('/api/submit-score', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, token }),
     })
 
-    const contentType = res.headers.get('content-type') || ''
-    const viaServer = res.status === 404 || contentType.includes('text/html')
-      ? { ok: false, reason: 'not_configured' }
-      : { ok: res.ok, ...(await res.json().catch(() => ({}))) }
+    const data = await res.json().catch(() => ({}))
+    if (data.ok) return data
 
-    if (viaServer.ok) return viaServer
-
-    // 2) Fallback langsung ke Apps Script (tanpa server)
-    if (directUrl) {
-      const direct = await fetch(directUrl, {
-        method: 'POST',
-        // text/plain → hindari CORS preflight
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(payload),
-      })
-      const data = await direct.json().catch(() => ({}))
-      if (data.ok) {
-        return { ok: true, reason: 'saved', message: 'Hasil tes tersimpan ke Google Sheets.' }
+    // Kasus khusus: API tidak ditemukan / belum ter-deploy (404 / respon HTML)
+    const isHtml = (res.headers.get('content-type') || '').includes('text/html')
+    if (res.status === 404 || isHtml) {
+      return {
+        ok: false,
+        reason: 'not_configured',
+        message:
+          'Server penilaian tidak ditemukan. Jalankan lewat "npm run serve" (bukan "npm run dev") atau deploy ke Vercel dengan folder /api ikut ter-deploy.',
       }
-      return { ok: false, reason: 'error', message: data.error || 'Apps Script menolak permintaan.' }
     }
-
-    return viaServer
+    return data
   } catch (err) {
-    // Jaringan error pada /api → coba langsung Apps Script
-    if (directUrl) {
-      const direct = await fetch(directUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(payload),
-      })
-      const data = await direct.json().catch(() => ({}))
-      if (data.ok) return { ok: true, reason: 'saved', message: 'Hasil tes tersimpan ke Google Sheets.' }
-      return { ok: false, reason: 'error', message: data.error || 'Apps Script menolak permintaan.' }
-    }
     return { ok: false, reason: 'network_error', message: err.message }
   }
 }

@@ -43,7 +43,8 @@ npm run preview  # preview hasil build
 
 - `src/utils/constants.js` — **nomor WhatsApp admin** (masih placeholder `6281234567890`).
 - `config.json` (root) — sudah berisi **Google API key** + **Spreadsheet ID**. ⚠️ File ini di-gitignore, jangan di-commit.
-- `src/data/questions.js` — bank soal (30 soal) sudah terpasang.
+- `src/data/questions.js` — bank soal (30 soal) sudah terpasang. ⚠️ **Kunci jawaban TIDAK ada di sini** — skor dihitung server-side via `/api/submit-score` (kunci ada di `lib/answer-key.js`).
+- **`ENCASA_SCORE_SECRET`** (env) — secret penandatangan token sesi tes. **Wajib di-set** di Vercel (lihat `.env.example`).
 
 ## 🗄️ Integrasi Google Sheets
 
@@ -83,7 +84,14 @@ npm run serve        # http://localhost:8787 (dist + /api/submit-score)
 npm i -g vercel
 vercel
 ```
-Folder `/api` otomatis jadi Serverless Functions. Jangan lupa set env vars di Vercel.
+Folder `/api` otomatis jadi Serverless Functions. Jangan lupa set env vars di Vercel, minimal:
+- `ENCASA_SCORE_SECRET` — secret token sesi tes (wajib)
+- `GOOGLE_APPS_SCRIPT_URL` **atau** `GOOGLE_SERVICE_ACCOUNT_EMAIL` + `GOOGLE_PRIVATE_KEY` + `GOOGLE_SHEET_ID`
+
+### Keamanan (server-side scoring)
+- Kunci jawaban hanya ada di server (`lib/answer-key.js`, di luar folder `/api` agar tidak dijadikan function oleh Vercel) — siswa tidak bisa melihatnya dari source code.
+- Frontend mengirim **jawaban** ke `/api/submit-score`; server menghitung skor, menyimpan ke Google Sheets, lalu mengembalikan skor + detail review.
+- Token sesi (HMAC) dari `/api/test-session` wajib dibawa saat submit; input divalidasi & ada rate limit per IP.
 
 > ℹ️ `config.json` hanya untuk pemakaian lokal (file ini di-gitignore).
 > Di Vercel lebih aman set env vars (mis. `GOOGLE_APPS_SCRIPT_URL`) daripada mengandalkan file.

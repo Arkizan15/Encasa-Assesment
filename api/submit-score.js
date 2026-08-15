@@ -1,15 +1,18 @@
 /**
- * /api/submit-score — Vercel Serverless Function (FASE 4).
+ * /api/submit-score — Vercel Serverless Function.
  *
- * Menyimpan hasil tes pendaftar ke Google Sheets secara otomatis.
+ * Menerima JAWABAN siswa (bukan skor), menghitung skor server-side memakai
+ * kunci jawaban yang hanya ada di server, menyimpan hasil ke Google Sheets,
+ * lalu mengembalikan skor + detail review untuk halaman hasil.
  *
- * 🔐 Kredensial (prioritas):
- *   1. Env vars: GOOGLE_SERVICE_ACCOUNT_EMAIL + GOOGLE_PRIVATE_KEY
- *   2. File service-account.json di root project (TIDAK di-commit)
+ * 🔒 Pengamanan:
+ *   - Token sesi wajib (dari /api/test-session) — mencegah kirim skor palsu
+ *     langsung ke API tanpa mengikuti tes.
+ *   - Validasi input: nama, kelas (whitelist), jawaban (id 1–30, tipe benar).
+ *   - Rate limit sederhana per IP.
  *
- * ⚠️ Catatan: Google API key (config.json) hanya bisa MEMBACA data publik —
- *    menulis baris butuh service account / OAuth. Mekanisme tulis di sini
- *    memakai service account (JWT RS256, tanpa dependency eksternal).
+ * Body: { nama, kelas, answers: {id: jawaban}, timeUsed, tabSwitchCount, status, token }
+ * Respon: { ok, skor, total, persentase, detail: [{id, userAnswer, isCorrect, correct}], save }
  *
  * Deploy: Vercel → project root memiliki folder /api.
  * Lokal  : node server.mjs (setelah npm run build).
@@ -18,26 +21,51 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
+import { scoreTest } from '../lib/scoring.js'
+import { verifyToken } from '../lib/session.js'
+import { isValidKelas, isValidNama, validateAnswers } from '../lib/validation.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.join(__dirname, '..')
 
-// ── Baca config.json (API key + spreadsheetId + appsScriptUrl) ────────
-// Dibaca ulang setiap request agar perubahan config.json langsung berlaku
-// tanpa restart server.
-let config = {}
+// ── Baca config.json (spreadsheetId + appsScriptUrl) ──────────────────
 let SPREADSHEET_ID = ''
 
 function readConfig() {
   try {
-    config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf-8'))
+    const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf-8'))
+    SPREADSHEET_ID = config.spreadsheetId || process.env.GOOGLE_SHEET_ID || ''
+    return config
   } catch {
-    config = {}
+    SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID || ''
+    return {}
   }
-  SPREADSHEET_ID = config.spreadsheetId || process.env.GOOGLE_SHEET_ID || ''
-  return config
 }
 readConfig()
+
+// ── Rate limit sederhana (per IP, in-memory — cukup untuk skala sekolah) ──
+// Hanya batas per jam (tanpa jeda antar-submit) agar satu kelas di belakang
+// IP NAT yang sama bisa mengumpulkan bersamaan tanpa salah diblokir.
+const RATE_LIMIT = {
+  maxPerHour: 200, // jauh di atas kebutuhan satu kelas, cukup menghambat spam
+}
+const rateMap = new Map() // ip → { count, windowStart }
+
+function rateLimited(ip) {
+  const now = Date.now()
+  if (rateMap.size > 10000) rateMap.clear() // cegah memori membengkak
+  const entry = rateMap.get(ip)
+  if (!entry) {
+    rateMap.set(ip, { count: 1, windowStart: now })
+    return false
+  }
+  if (now - entry.windowStart > 60 * 60 * 1000) {
+    rateMap.set(ip, { count: 1, windowStart: now })
+    return false
+  }
+  entry.count += 1
+  return entry.count > RATE_LIMIT.maxPerHour
+}
 
 // ── Ambil kredensial service account ───────────────────────────────────
 function loadServiceAccount() {
@@ -84,7 +112,6 @@ function signJwt(clientEmail, privateKey, scope) {
   return `${input}.${signature}`
 }
 
-// Fetch dengan timeout agar serverless tidak menggantung
 async function fetchWithTimeout(url, options = {}, ms = 10000) {
   const controller = new AbortController()
   const id = setTimeout(() => controller.abort(), ms)
@@ -152,9 +179,6 @@ async function ensureHeader(token, sheetName) {
 
 async function appendRows(token, sheetName, rows) {
   const range = `${quoteSheet(sheetName)}!A1`
-  // valueInputOption & insertDataOption adalah query parameter, bukan body.
-  // RAW → nilai disimpan sebagai teks apa adanya ("83%", "00:03:00" tampil persis).
-  // USER_ENTERED justru meng-parse "83%" jadi 0.83 & "00:03:00" jadi pecahan hari.
   const params = new URLSearchParams({
     valueInputOption: 'RAW',
     insertDataOption: 'INSERT_ROWS',
@@ -177,6 +201,69 @@ async function appendRows(token, sheetName, rows) {
   return res.json()
 }
 
+// ── Simpan ke Google Sheets (skor sudah dihitung server-side) ──────────
+async function saveToSheet({ nama, kelas, skor, total, persentase, durasi, pelanggaranTab, status }) {
+  const config = readConfig()
+  const appsScriptUrl = config.appsScriptUrl || process.env.GOOGLE_APPS_SCRIPT_URL
+
+  // Jalur 1: Apps Script Web App (paling mudah)
+  if (appsScriptUrl) {
+    const payload = { nama, kelas, skor, total, persentase, durasi, pelanggaranTab, status }
+    // Opsional: jika admin set APPS_SCRIPT_SECRET, ikut dikirim agar Code.gs
+    // bisa menolak panggilan langsung ke URL web app tanpa melalui server.
+    const appsScriptSecret = config.appsScriptSecret || process.env.APPS_SCRIPT_SECRET
+    if (appsScriptSecret) payload._secret = appsScriptSecret
+    const forward = await fetchWithTimeout(
+      appsScriptUrl,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload),
+      },
+      20000,
+    )
+    const text = await forward.text()
+    let data = {}
+    try {
+      data = JSON.parse(text)
+    } catch {
+      /* respon bukan JSON */
+    }
+    if (forward.ok && data.ok) {
+      return { ok: true, reason: 'saved', message: 'Hasil tes tersimpan ke Google Sheets (Apps Script).' }
+    }
+    return { ok: false, reason: 'error', message: data.error || `Apps Script merespon ${forward.status}.` }
+  }
+
+  // Jalur 2: Service Account
+  const sa = loadServiceAccount()
+  if (!sa) {
+    return {
+      ok: false,
+      reason: 'not_configured',
+      message: 'Belum terhubung ke Google Sheets. Isi config.json → "appsScriptUrl" atau siapkan service account.',
+    }
+  }
+
+  const token = await getAccessToken(sa)
+  const sheetName = config.sheetName || (await getFirstSheetName(token))
+  await ensureHeader(token, sheetName)
+  await appendRows(token, sheetName, [
+    [
+      new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }),
+      nama,
+      kelas,
+      skor,
+      total,
+      `${persentase}%`,
+      durasi,
+      pelanggaranTab ?? 0,
+      status ?? 'manual',
+    ],
+  ])
+  return { ok: true, reason: 'saved', message: 'Hasil tes tersimpan ke Google Sheets.' }
+}
+
 // ── Handler Vercel ─────────────────────────────────────────────────────
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -192,94 +279,56 @@ export default async function handler(req, res) {
     return
   }
 
-  readConfig() // refresh config.json per request
+  const { nama, kelas, answers, token, timeUsed, tabSwitchCount, status } = body
 
-  const { nama, kelas, skor, total, persentase, durasi, pelanggaranTab, status } = body
-  if (!nama || !kelas) {
-    res.status(400).json({ ok: false, reason: 'missing_fields' })
+  // 1) Token sesi wajib & valid
+  const session = verifyToken(token, kelas)
+  if (!session.ok) {
+    res.status(403).json({ ok: false, ...session })
     return
   }
 
-  if (!SPREADSHEET_ID) {
-    res.status(200).json({ ok: false, reason: 'not_configured', message: 'config.json belum berisi spreadsheetId.' })
+  // 2) Validasi input
+  if (!isValidNama(nama)) {
+    res.status(400).json({ ok: false, reason: 'invalid_nama' })
+    return
+  }
+  if (!isValidKelas(kelas)) {
+    res.status(400).json({ ok: false, reason: 'invalid_kelas' })
+    return
+  }
+  const answersCheck = validateAnswers(answers)
+  if (!answersCheck.ok) {
+    res.status(400).json({ ok: false, reason: 'invalid_answers' })
     return
   }
 
-  // ── Jalur 1: Google Apps Script Web App (paling mudah, tanpa Cloud Console) ──
-  const appsScriptUrl = config.appsScriptUrl || process.env.GOOGLE_APPS_SCRIPT_URL
-  if (appsScriptUrl) {
-    try {
-      const forward = await fetchWithTimeout(
-        appsScriptUrl,
-        {
-          method: 'POST',
-          // text/plain agar tidak memicu CORS preflight dari browser
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            nama,
-            kelas,
-            skor,
-            total,
-            persentase,
-            durasi,
-            pelanggaranTab,
-            status,
-          }),
-        },
-        20000,
-      )
-      const text = await forward.text()
-      let data = {}
-      try {
-        data = JSON.parse(text)
-      } catch {
-        /* respon bukan JSON */
-      }
-      if (forward.ok && data.ok) {
-        res.status(200).json({ ok: true, reason: 'saved', message: 'Hasil tes tersimpan ke Google Sheets (Apps Script).' })
-      } else {
-        res.status(200).json({ ok: false, reason: 'error', message: data.error || `Apps Script merespon ${forward.status}. Pastikan Web App sudah di-deploy & aksesnya "Anyone".` })
-      }
-    } catch (err) {
-      res.status(200).json({ ok: false, reason: 'error', message: `Gagal menghubungi Apps Script: ${err.message}` })
-    }
+  // 3) Rate limit per IP
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'local'
+  if (rateLimited(ip)) {
+    res.status(429).json({ ok: false, reason: 'rate_limited', message: 'Terlalu banyak pengumpulan. Coba lagi beberapa saat.' })
     return
   }
 
-  // ── Jalur 2: Service Account (standar, butuh Google Cloud Console) ──
-  const sa = loadServiceAccount()
-  if (!sa) {
-    res
-      .status(200)
-      .json({
-        ok: false,
-        reason: 'not_configured',
-        message:
-          'Belum terhubung. Isi config.json → "appsScriptUrl" (paling mudah, lihat apps-script/Code.gs) atau siapkan service-account.json / env service account. (Google API key tidak bisa menulis ke Sheets.)',
-      })
-    return
-  }
+  // 4) Hitung skor server-side
+  const { skor, total, persentase, detail } = scoreTest(answersCheck.answers)
 
+  // 5) Simpan ke Google Sheets — kegagalan simpan TIDAK menggagalkan skor
+  let save = { ok: false, reason: 'error', message: 'Gagal menyimpan hasil.' }
   try {
-    const token = await getAccessToken(sa)
-    const sheetName = config.sheetName || (await getFirstSheetName(token))
-    await ensureHeader(token, sheetName)
-
-    const row = [
-      new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }),
-      nama,
-      kelas,
+    save = await saveToSheet({
+      nama: nama.trim(),
+      kelas: kelas.trim(),
       skor,
       total,
-      `${persentase}%`,
-      durasi,
-      pelanggaranTab ?? 0,
-      status ?? 'manual',
-    ]
-    await appendRows(token, sheetName, [row])
-
-    res.status(200).json({ ok: true, reason: 'saved', message: 'Hasil tes tersimpan ke Google Sheets.' })
+      persentase,
+      durasi: typeof timeUsed === 'number' ? Math.max(0, timeUsed) : 0,
+      pelanggaranTab: Number.isFinite(tabSwitchCount) ? tabSwitchCount : 0,
+      status: typeof status === 'string' && status.length <= 50 ? status : 'manual',
+    })
   } catch (err) {
-    res.status(200).json({ ok: false, reason: 'error', message: err.message })
+    save = { ok: false, reason: 'error', message: err.message }
   }
+
+  res.status(200).json({ ok: true, skor, total, persentase, detail, save })
 }

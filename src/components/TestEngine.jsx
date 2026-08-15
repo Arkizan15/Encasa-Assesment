@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   BiTimeFive,
   BiFlag,
@@ -13,6 +13,8 @@ import {
 import { QUESTIONS } from '../data/questions.js'
 import { TEST_DURATION_SECONDS, MAX_TAB_SWITCH_WARNING } from '../utils/constants.js'
 import { formatTime } from '../utils/formatTime.js'
+import { loadTestState, saveTestState, clearTestState } from '../utils/persistence.js'
+import { seededShuffle, randomSeed } from '../utils/shuffle.js'
 import useAntiCheat from '../hooks/useAntiCheat.js'
 import useCountdown from '../hooks/useCountdown.js'
 import QuestionCard from './QuestionCard.jsx'
@@ -24,11 +26,26 @@ import QuestionPalette from './QuestionPalette.jsx'
  * blokir copy-paste-klik kanan, dan auto-submit saat waktu habis / pelanggaran maksimal.
  */
 export default function TestEngine({ user, onFinish }) {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [answers, setAnswers] = useState({})
-  const [flagged, setFlagged] = useState(() => new Set())
+  // Progres tersimpan (localStorage) — dipulihkan kalau tab di-refresh tidak sengaja
+  const [saved] = useState(loadTestState)
+
+  const [currentIndex, setCurrentIndex] = useState(() =>
+    Math.min(saved?.currentIndex ?? 0, QUESTIONS.length - 1)
+  )
+  const [answers, setAnswers] = useState(() => saved?.answers ?? {})
+  const [flagged, setFlagged] = useState(() => new Set(saved?.flagged ?? []))
   const [showSubmitModal, setShowSubmitModal] = useState(false)
   const [showPalette, setShowPalette] = useState(false)
+
+  // Seed pengacakan — tetap sama untuk satu sesi (stabil saat refresh)
+  const [seed] = useState(() => saved?.seed ?? randomSeed())
+
+  // Urutan soal diacak per siswa (deterministik dari seed); jawaban tersimpan
+  // sebagai teks opsi, jadi pengacakan tidak memengaruhi penilaian.
+  const orderedQuestions = useMemo(() => seededShuffle(QUESTIONS, seed), [seed])
+
+  // Waktu mulai tes dipersist agar timer tetap berjalan meski halaman di-refresh/ditutup
+  const testStartedAtRef = useRef(saved?.testStartedAt ?? Date.now())
 
   // Ref agar callback auto-submit selalu membaca state terbaru + cegah double-submit
   const answersRef = useRef(answers)
@@ -42,6 +59,7 @@ export default function TestEngine({ user, onFinish }) {
   const finish = useCallback((reason) => {
     if (finishedRef.current) return
     finishedRef.current = true
+    clearTestState() // tes selesai — hapus progres tersimpan
     setShowSubmitModal(false)
     onFinishRef.current({
       answers: answersRef.current,
@@ -51,11 +69,19 @@ export default function TestEngine({ user, onFinish }) {
     })
   }, [])
 
+  // Sisa waktu dihitung dari waktu mulai, bukan direset — aman saat refresh
+  const initialSeconds = Math.max(
+    0,
+    TEST_DURATION_SECONDS - Math.floor((Date.now() - testStartedAtRef.current) / 1000)
+  )
+
   const { tabSwitchCount, warningOpen, dismissWarning } = useAntiCheat({
     maxWarnings: MAX_TAB_SWITCH_WARNING,
+    initialCount: saved?.tabSwitchCount ?? 0,
     onViolationLimit: (count) => {
       if (finishedRef.current) return
       finishedRef.current = true
+      clearTestState()
       onFinishRef.current({
         answers: answersRef.current,
         timeUsed: TEST_DURATION_SECONDS - secondsLeftRef.current,
@@ -67,10 +93,22 @@ export default function TestEngine({ user, onFinish }) {
   tabSwitchCountRef.current = tabSwitchCount
 
   const { secondsLeft } = useCountdown({
-    initialSeconds: TEST_DURATION_SECONDS,
+    initialSeconds,
     onExpire: () => finish('timeout'),
   })
   secondsLeftRef.current = secondsLeft
+
+  // Simpan progres setiap ada perubahan → survive refresh
+  useEffect(() => {
+    saveTestState({
+      currentIndex,
+      answers,
+      flagged: [...flagged],
+      tabSwitchCount,
+      testStartedAt: testStartedAtRef.current,
+      seed,
+    })
+  }, [currentIndex, answers, flagged, tabSwitchCount, seed])
 
   // Peringatan saat user mencoba menutup / me-refresh halaman di tengah tes
   useEffect(() => {
@@ -82,10 +120,33 @@ export default function TestEngine({ user, onFinish }) {
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [])
 
-  const question = QUESTIONS[currentIndex]
+  // Minta fullscreen saat tes dimulai (butuh user gesture — retry pada klik pertama),
+  // dan keluar fullscreen otomatis saat tes selesai (unmount).
+  useEffect(() => {
+    const el = document.documentElement
+    const enterFullscreen = () => {
+      if (!document.fullscreenElement && typeof el.requestFullscreen === 'function') {
+        el.requestFullscreen().catch(() => {})
+      }
+    }
+    enterFullscreen()
+    const onInteraction = () => {
+      enterFullscreen()
+      window.removeEventListener('click', onInteraction)
+    }
+    window.addEventListener('click', onInteraction)
+    return () => {
+      window.removeEventListener('click', onInteraction)
+      if (document.fullscreenElement && typeof document.exitFullscreen === 'function') {
+        document.exitFullscreen().catch(() => {})
+      }
+    }
+  }, [])
+
+  const question = orderedQuestions[currentIndex]
   const answer = answers[question.id]
   const isFlagged = flagged.has(question.id)
-  const unansweredCount = QUESTIONS.filter((q) => {
+  const unansweredCount = orderedQuestions.filter((q) => {
     const a = answers[q.id]
     return q.type === 'multiple_select' ? !Array.isArray(a) || a.length === 0 : a == null
   }).length
@@ -254,6 +315,7 @@ export default function TestEngine({ user, onFinish }) {
           {/* Sidebar desktop */}
           <aside className="hidden lg:block space-y-4">
             <QuestionPalette
+              questions={orderedQuestions}
               answers={answers}
               flagged={flagged}
               currentIndex={currentIndex}
@@ -286,8 +348,9 @@ export default function TestEngine({ user, onFinish }) {
             </div>
             <div className="px-6 py-5">
               <p className="text-sm text-slate-700 leading-relaxed">
-                Kamu terdeteksi <span className="font-bold text-red-600">berpindah tab / membuka
-                aplikasi lain</span> selama tes berlangsung.
+                Kamu terdeteksi <span className="font-bold text-red-600">berpindah tab, membuka
+                aplikasi lain, atau keluar dari layar tes</span> (termasuk mencoba screenshot)
+                selama tes berlangsung.
               </p>
               <div className="mt-3 rounded-lg bg-slate-50 border border-slate-200 px-4 py-3 text-sm font-bold text-slate-800">
                 Pelanggaran: {tabSwitchCount} dari {MAX_TAB_SWITCH_WARNING} — tes akan
@@ -365,6 +428,7 @@ export default function TestEngine({ user, onFinish }) {
             </div>
             <div className="max-h-[65vh] overflow-y-auto px-5 py-5">
               <QuestionPalette
+                questions={orderedQuestions}
                 answers={answers}
                 flagged={flagged}
                 currentIndex={currentIndex}

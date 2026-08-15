@@ -27,10 +27,22 @@ const HEADERS = [
   'Status Tes',
 ]
 
-/** Diterima dari /api/submit-score (atau langsung dari frontend). */
+/**
+ * Diterima dari /api/submit-score.
+ *
+ * OPSIONAL: untuk mencegah panggilan langsung ke URL web app ini tanpa lewat
+ * server, set Script Property "APP_SECRET" (Project Settings → Script Properties)
+ * lalu set env APPS_SCRIPT_SECRET di server dengan nilai yang SAMA. Jika salah
+ * satu tidak di-set, mekanisme ini dinonaktifkan (backward compatible).
+ */
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents)
+
+    const expectedSecret = PropertiesService.getScriptProperties().getProperty('APP_SECRET')
+    if (expectedSecret && data._secret !== expectedSecret) {
+      return jsonResponse({ ok: false, error: 'Unauthorized' })
+    }
 
     const ss = SpreadsheetApp.getActiveSpreadsheet()
     const sheet = ss.getSheets()[0] // sheet pertama

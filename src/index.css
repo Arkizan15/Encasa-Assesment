@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Font Inter di-host sendiri (tanpa Google Fonts CDN — lebih cepat & privat) */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/fonts/inter-variable.woff2') format('woff2');
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;

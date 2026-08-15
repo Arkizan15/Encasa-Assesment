@@ -39,6 +39,16 @@ export default function QuestionCard({ question, index, total, answer, onAnswer 
         </span>
       </div>
 
+      {/* Bacaan (untuk soal based on story/passage) */}
+      {question.passage && (
+        <div className="mx-6 mt-5 rounded-xl border border-blue-100 bg-blue-50/50 px-5 py-4">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-blue-700">Bacaan</p>
+          <p className="text-sm leading-relaxed text-slate-700 select-text whitespace-pre-line">
+            {question.passage}
+          </p>
+        </div>
+      )}
+
       {/* Teks soal */}
       <div className="px-6 pt-5">
         <p className="text-base font-semibold text-slate-800 leading-relaxed select-text">

@@ -38,3 +38,4 @@ service-account.json
 Thumbs.db
 
 .vercel
+.env*
