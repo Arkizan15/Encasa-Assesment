@@ -1,13 +1,20 @@
 import { useState } from 'react'
+import {
+  UserIcon,
+  BookOpenIcon,
+  RectangleStackIcon,
+  InformationCircleIcon,
+  CheckCircleIcon,
+} from '@heroicons/react/24/outline'
 import { ArrowRightIcon } from '@heroicons/react/24/solid'
 import { GRADE_LIST, CLASS_LIST } from '../data/classes.js'
 import { validateIdentity } from '../utils/validation.js'
 import CustomSelect from './CustomSelect.jsx'
 
 /**
- * FASE 1 — Form Identitas (tampilan editorial ala Dribbble/Behance).
- * Layout asimetris: kiri cerita brand, kanan formulir. Tipografi pairing
- * Fraunces (judul) + Plus Jakarta Sans (body). Copy kasual & manusiawi.
+ * FASE 1 — Form Identitas Pengguna.
+ * Input Nama Lengkap (wajib) + Dropdown Kelas (tidak boleh ketik bebas).
+ * Tema navy flat, font Poppins, tanpa gradient.
  */
 export default function IdentityForm({ onSubmit, initialData }) {
   // initialData (opsional) → isi form dengan data sebelumnya saat kembali dari lobby
@@ -26,162 +33,147 @@ export default function IdentityForm({ onSubmit, initialData }) {
     }
   }
 
-  const fieldClass = (hasError) =>
-    `w-full rounded-xl border bg-navy-950/60 px-4 py-3 text-sm text-slate-100 outline-none transition-all placeholder:text-slate-500 ${
-      hasError ? 'border-red-500/60 focus:border-red-400' : 'border-navy-700 focus:border-blue-400'
-    }`
-
   return (
-    <div className="min-h-screen bg-navy-950/70 flex items-center justify-center px-4 sm:px-6 py-10 lg:py-16">
-      <div className="w-full max-w-6xl">
-        <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
-          {/* ── Kiri: cerita brand ── */}
-          <div className="animate-rise">
-            <img
-              src="/logo-encasa.png"
-              alt="Logo Encasa Grouping"
-              draggable={false}
-              className="h-16 w-auto object-contain rounded-[15px]"
-            />
-
-            <p className="mt-10 text-[11px] font-bold uppercase tracking-[0.25em] text-amber-400">
-              Encasa Grouping · Penerimaan Anggota 2026
-            </p>
-            <h1 className="mt-4 text-4xl sm:text-5xl lg:text-[3.4rem] font-semibold text-cream-100 leading-[1.08]">
-              Kenalan dulu,{' '}
-              <em className="italic text-amber-400 font-medium">biar nggak canggung.</em>
-            </h1>
-            <p className="mt-5 max-w-md text-sm sm:text-base leading-relaxed text-slate-400">
-              Ini tes diagnostik singkat buat lihat gaya belajar & potensi kamu.
-              Hasilnya cuma dibaca tim Encasa — nggak dipajang di mading, kok.
-              Cukup jawab sejujurnya.
-            </p>
-
-            {/* Angka besar ala editorial */}
-            <div className="mt-9 flex items-start gap-8">
-              <div>
-                <p className="font-display text-3xl text-cream-100">30</p>
-                <p className="mt-1 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-                  soal singkat
-                </p>
-              </div>
-              <div>
-                <p className="font-display text-3xl text-cream-100">±15</p>
-                <p className="mt-1 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-                  menit doang
-                </p>
-              </div>
-              <div>
-                <p className="font-display text-3xl text-cream-100">100%</p>
-                <p className="mt-1 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-                  jujur aja
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Kanan: formulir ── */}
-          <div className="animate-rise-2">
-            <div className="bg-navy-900 rounded-[28px] border border-navy-800 shadow-card overflow-hidden p-7 sm:p-9">
-              {/* Progres langkah */}
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
-                  Langkah 1 dari 4
-                </p>
-                <p className="text-[11px] font-semibold text-amber-400">wajib diisi semua</p>
-              </div>
-              <div className="mt-3 h-1 rounded-full bg-navy-800">
-                <div className="h-full w-1/4 rounded-full bg-amber-400" />
-              </div>
-
-              <h2 className="mt-7 text-2xl font-semibold text-slate-100">Biodata singkat</h2>
-              <p className="mt-1 text-sm text-slate-400">
-                Biar kami tahu hasil tes ini punya siapa.
-              </p>
-
-              <form onSubmit={handleSubmit} noValidate className="mt-7 space-y-6">
-                {/* 01 — Nama Lengkap */}
-                <div>
-                  <label htmlFor="nama" className="mb-1.5 flex items-baseline gap-2 text-sm font-semibold text-slate-300">
-                    <span className="font-display text-xs italic text-amber-400">01</span>
-                    Nama lengkap <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    id="nama"
-                    type="text"
-                    value={nama}
-                    onChange={(e) => {
-                      setNama(e.target.value)
-                      if (errors.nama) setErrors((prev) => ({ ...prev, nama: null }))
-                    }}
-                    placeholder="Contoh: Arkan Rifqy Fauzan"
-                    autoComplete="name"
-                    className={fieldClass(errors.nama)}
-                  />
-                  {errors.nama && (
-                    <p className="mt-1.5 text-xs font-medium text-red-400">{errors.nama}</p>
-                  )}
-                </div>
-
-                {/* 02 — Tingkat (X / XI) */}
-                <div>
-                  <label htmlFor="tingkat" className="mb-1.5 flex items-baseline gap-2 text-sm font-semibold text-slate-300">
-                    <span className="font-display text-xs italic text-amber-400">02</span>
-                    Kelas (tingkat) <span className="text-red-400">*</span>
-                  </label>
-                  <CustomSelect
-                    id="tingkat"
-                    value={tingkat}
-                    placeholder="Pilih tingkat (X / XI)…"
-                    options={GRADE_LIST.map((g) => ({ value: g, label: `Kelas ${g}` }))}
-                    error={errors.tingkat}
-                    onChange={(v) => {
-                      setTingkat(v)
-                      if (errors.tingkat) setErrors((prev) => ({ ...prev, tingkat: null }))
-                    }}
-                  />
-                  {errors.tingkat && (
-                    <p className="mt-1.5 text-xs font-medium text-red-400">{errors.tingkat}</p>
-                  )}
-                </div>
-
-                {/* 03 — Nama Kelas */}
-                <div>
-                  <label htmlFor="kelas" className="mb-1.5 flex items-baseline gap-2 text-sm font-semibold text-slate-300">
-                    <span className="font-display text-xs italic text-amber-400">03</span>
-                    Nama kelas <span className="text-red-400">*</span>
-                  </label>
-                  <CustomSelect
-                    id="kelas"
-                    value={kelas}
-                    placeholder="Pilih nama kelas…"
-                    options={CLASS_LIST}
-                    error={errors.kelas}
-                    onChange={(v) => {
-                      setKelas(v)
-                      if (errors.kelas) setErrors((prev) => ({ ...prev, kelas: null }))
-                    }}
-                  />
-                  {errors.kelas && (
-                    <p className="mt-1.5 text-xs font-medium text-red-400">{errors.kelas}</p>
-                  )}
-                </div>
-
-                {/* CTA */}
-                <button
-                  type="submit"
-                  className="cursor-target w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 py-4 text-sm font-extrabold text-navy-950 shadow-soft transition-all hover:-translate-y-0.5 hover:bg-amber-300 hover:shadow-card active:translate-y-0"
-                >
-                  Beres, lanjut ke briefing
-                  <ArrowRightIcon className="h-5 w-5" />
-                </button>
-                <p className="text-center text-xs text-slate-500">
-                  Nggak butuh waktu lama — ±15 menit, santai aja.
-                </p>
-              </form>
-            </div>
-          </div>
+    <div className="min-h-screen bg-navy-950/70 flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-lg">
+        {/* Brand header */}
+        <div className="flex items-center justify-center mb-6">
+          <img
+            src="/logo-encasa.png"
+            alt="Logo Encasa Grouping"
+            draggable={false}
+            className="h-12 sm:h-14 w-auto object-contain rounded-[15px]"
+          />
         </div>
+
+        {/* Card utama */}
+        <div className="bg-navy-900 rounded-2xl border border-navy-800 shadow-card">
+          {/* Header card */}
+          <div className="bg-navy-850 rounded-t-2xl border-b border-navy-700 px-7 py-6">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-navy-900 border border-blue-500/30 px-3 py-1 text-xs font-semibold text-blue-300">
+              <InformationCircleIcon className="h-4 w-4" />
+              TES DIAGNOSTIK ONLINE
+            </span>
+            <h1 className="mt-3 text-2xl font-bold text-slate-100">Identitas Pendaftar</h1>
+            <p className="mt-1 text-sm text-slate-400">
+              Isi data diri dengan benar. Data ini akan digunakan untuk menilai hasil tes kamu.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} noValidate className="px-7 py-6 space-y-5">
+            {/* Nama Lengkap */}
+            <div>
+              <label htmlFor="nama" className="block text-sm font-semibold text-slate-300 mb-1.5">
+                Nama Lengkap <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 h-5 w-5" />
+                <input
+                  id="nama"
+                  type="text"
+                  value={nama}
+                  onChange={(e) => {
+                    setNama(e.target.value)
+                    if (errors.nama) setErrors((prev) => ({ ...prev, nama: null }))
+                  }}
+                  placeholder="Contoh: Arkan Rifqy Fauzan"
+                  autoComplete="name"
+                  className={`w-full rounded-xl border bg-navy-950/60 pl-10 pr-4 py-3 text-sm text-slate-100 outline-none transition-colors placeholder:text-slate-500 ${
+                    errors.nama
+                      ? 'border-red-500/60 focus:border-red-400'
+                      : 'border-navy-700 focus:border-blue-400'
+                  }`}
+                />
+              </div>
+              {errors.nama && (
+                <p className="mt-1.5 text-xs font-medium text-red-600">{errors.nama}</p>
+              )}
+            </div>
+
+            {/* Tingkat (X / XI) */}
+            <div>
+              <label htmlFor="tingkat" className="block text-sm font-semibold text-slate-300 mb-1.5">
+                Kelas (Tingkat) <span className="text-red-500">*</span>
+              </label>
+              <CustomSelect
+                id="tingkat"
+                value={tingkat}
+                placeholder="Pilih tingkat (X / XI)…"
+                options={GRADE_LIST.map((g) => ({ value: g, label: `Kelas ${g}` }))}
+                icon={
+                  <RectangleStackIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 h-5 w-5" />
+                }
+                error={errors.tingkat}
+                onChange={(v) => {
+                  setTingkat(v)
+                  if (errors.tingkat) setErrors((prev) => ({ ...prev, tingkat: null }))
+                }}
+              />
+              {errors.tingkat && (
+                <p className="mt-1.5 text-xs font-medium text-red-600">{errors.tingkat}</p>
+              )}
+            </div>
+
+            {/* Nama Kelas */}
+            <div>
+              <label htmlFor="kelas" className="block text-sm font-semibold text-slate-300 mb-1.5">
+                Nama Kelas <span className="text-red-500">*</span>
+              </label>
+              <CustomSelect
+                id="kelas"
+                value={kelas}
+                placeholder="Pilih nama kelas…"
+                options={CLASS_LIST}
+                icon={
+                  <BookOpenIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 h-5 w-5" />
+                }
+                error={errors.kelas}
+                onChange={(v) => {
+                  setKelas(v)
+                  if (errors.kelas) setErrors((prev) => ({ ...prev, kelas: null }))
+                }}
+              />
+              {errors.kelas && (
+                <p className="mt-1.5 text-xs font-medium text-red-600">{errors.kelas}</p>
+              )}
+            </div>
+
+            {/* Info aturan tes */}
+            <div className="rounded-xl bg-blue-500/10 border border-blue-500/25 px-4 py-3.5">
+              <p className="text-xs font-bold text-blue-300 uppercase tracking-wide mb-2">
+                Sebelum mulai, perhatikan:
+              </p>
+              <ul className="space-y-1.5">
+                {[
+                  'Tes bersifat individu dan diawasi sistem anti-cheat.',
+                  'Dilarang berpindah tab (maks pindah 3 kali wak, I just warn ya)',
+                  'Coba deh nanti copy pertanyaannya',
+                  'Tes akan dikumpulkan otomatis saat waktu habis.',
+                  'Jujur, bakal lebih asik kalo kalian buka ini di PC/laptop',
+                  'Wanna try cheating?'
+                ].map((rule) => (
+                  <li key={rule} className="flex items-start gap-2 text-xs text-blue-200/80">
+                    <CheckCircleIcon className="text-blue-400 mt-0.5 shrink-0 h-4 w-4" />
+                    {rule}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              className="cursor-target w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-500 px-4 py-3.5 text-sm font-bold text-white shadow-soft transition-colors hover:bg-blue-400 active:bg-blue-600"
+            >
+              Mulai Tes Assessment
+              <ArrowRightIcon className="h-5 w-5" />
+            </button>
+          </form>
+        </div>
+
+        <p className="mt-5 text-center text-xs text-slate-500">
+          Encasa Assessment by Arkan Rifqy Fauzan
+        </p>
       </div>
     </div>
   )
