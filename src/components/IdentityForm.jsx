@@ -177,7 +177,7 @@ export default function IdentityForm({ onSubmit, initialData }) {
                   'Dilarang berpindah tab / membuka aplikasi lain selama tes.',
                   'Dilarang copy-paste & klik kanan — sistem akan memblokir otomatis.',
                   'Tes akan dikumpulkan otomatis saat waktu habis.',
-                  'Awoakokwoakaowak gak bisa ngecheat.'
+                  'Coba aja nge cheat kalo berani.'
                 ].map((rule) => (
                   <li key={rule} className="flex items-start gap-2 text-xs text-blue-900/80">
                     <BiCheckCircle className="text-blue-600 mt-0.5 shrink-0" />

@@ -5,11 +5,14 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  *
  * 1. Deteksi pindah tab / buka aplikasi lain (visibilitychange) → hitung pelanggaran.
  * 2. Deteksi keluar dari mode fullscreen (wajib selama tes) → hitung pelanggaran.
- * 3. Anti-screenshot: saat fullscreen aktif, kehilangan fokus (blur) → pelanggaran
- *    (menangkap tool screenshot desktop: Snipping Tool, Cmd+Shift+3, dsb.) +
- *    blokir tombol PrintScreen.
+ * 3. Anti-screenshot desktop: saat browser kehilangan fokus (window blur — mis.
+ *    Snipping Tool / Alt+Tab mencuri fokus) → SELURUH LAYAR DI-BLUR
+ *    (filter: blur(20px)) agar tangkapan layar tidak terbaca. Otomatis kembali
+ *    normal saat fokus kembali. Dihitung sebagai pelanggaran HANYA saat
+ *    fullscreen aktif (hindari false-positive saat klik di luar window).
+ *    Tombol PrintScreen juga diblokir.
  * 4. Blokir klik kanan (contextmenu), copy, cut, paste, dan seleksi teks.
- * 5. Blokir shortcut umum: Ctrl+C/V/X/U/A/S/P, Ctrl+Shift+I/J/C, F12.
+ * 5. Blokir shortcut umum: Ctrl/Cmd+C/V/X/U/A/S/P, Ctrl/Cmd+Shift+I/J/C, F12.
  *
  * Catatan: screenshot di perangkat seluler (Android/iOS) tidak bisa dideteksi
  * oleh aplikasi web — ini batasan OS.
@@ -33,6 +36,20 @@ export default function useAntiCheat({ maxWarnings = 3, onViolationLimit, initia
   const lastViolationAtRef = useRef(0)
   const fullscreenActiveRef = useRef(false)
 
+  // ── Efek blur layar (anti-screenshot visual) ─────────────────────────
+  // Saat browser kehilangan fokus, seluruh halaman di-blur agar tangkapan
+  // layar / foto tidak terbaca. Dipulihkan otomatis saat fokus kembali.
+  const applyScreenBlur = useCallback(() => {
+    if (document.body.style.filter === 'blur(20px)') return
+    document.body.style.transition = 'filter 0.2s ease'
+    document.body.style.filter = 'blur(20px)'
+  }, [])
+
+  const removeScreenBlur = useCallback(() => {
+    document.body.style.filter = ''
+    document.body.style.transition = ''
+  }, [])
+
   const countViolation = useCallback(() => {
     const now = Date.now()
     if (now - lastViolationAtRef.current < 1000) return
@@ -47,12 +64,14 @@ export default function useAntiCheat({ maxWarnings = 3, onViolationLimit, initia
     const block = (e) => e.preventDefault()
 
     const onKeyDown = (e) => {
+      // Ctrl (Windows/Linux) ATAU Cmd (macOS) — keduanya diblokir
+      const isMod = e.ctrlKey || e.metaKey
       const blockedKeys = ['c', 'v', 'x', 'u', 's', 'a', 'p']
-      if (e.ctrlKey && blockedKeys.includes(e.key.toLowerCase())) {
+      if (isMod && blockedKeys.includes(e.key.toLowerCase())) {
         e.preventDefault()
       }
-      // DevTools: Ctrl+Shift+I / J / C
-      if (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(e.key.toLowerCase())) {
+      // DevTools: Ctrl/Cmd+Shift+I / J / C
+      if (isMod && e.shiftKey && ['i', 'j', 'c'].includes(e.key.toLowerCase())) {
         e.preventDefault()
       }
       if (e.key === 'F12') {
@@ -65,16 +84,26 @@ export default function useAntiCheat({ maxWarnings = 3, onViolationLimit, initia
     }
 
     const onVisibilityChange = () => {
-      if (document.hidden) countViolation()
+      if (document.hidden) {
+        applyScreenBlur()
+        countViolation()
+      } else {
+        removeScreenBlur()
+      }
     }
 
-    // Anti-screenshot desktop: saat fullscreen aktif, kehilangan fokus = ada
-    // aplikasi lain/tool screenshot mencuri fokus → pelanggaran.
-    // (Tanpa fullscreen, blur mudah false-positive — tidak dihitung.)
+    // Anti-screenshot desktop: kehilangan fokus (window blur) → blur layar
+    // supaya Snipping Tool / tool screenshot lain menangkap layar buram.
+    // (Dihitung sebagai pelanggaran hanya saat fullscreen — tanpanya blur
+    // mudah false-positive, tapi efek blur visual tetap diterapkan.)
     const onBlur = () => {
       if (unmountedRef.current) return
+      applyScreenBlur()
       if (fullscreenActiveRef.current) countViolation()
     }
+
+    // Fokus kembali → layar pulih normal
+    const onFocus = () => removeScreenBlur()
 
     // Keluar dari fullscreen (setelah berhasil masuk) = pelanggaran
     const onFullscreenChange = () => {
@@ -95,6 +124,7 @@ export default function useAntiCheat({ maxWarnings = 3, onViolationLimit, initia
     document.addEventListener('visibilitychange', onVisibilityChange)
     document.addEventListener('fullscreenchange', onFullscreenChange)
     window.addEventListener('blur', onBlur)
+    window.addEventListener('focus', onFocus)
 
     return () => {
       unmountedRef.current = true
@@ -106,8 +136,11 @@ export default function useAntiCheat({ maxWarnings = 3, onViolationLimit, initia
       document.removeEventListener('visibilitychange', onVisibilityChange)
       document.removeEventListener('fullscreenchange', onFullscreenChange)
       window.removeEventListener('blur', onBlur)
+      window.removeEventListener('focus', onFocus)
+      // Kembalikan layar ke normal — jangan merusak halaman lain
+      removeScreenBlur()
     }
-  }, [countViolation])
+  }, [countViolation, applyScreenBlur, removeScreenBlur])
 
   // Auto-submit saat pelanggaran mencapai batas maksimal
   useEffect(() => {

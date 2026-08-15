@@ -21,3 +21,12 @@
     @apply bg-slate-50 text-slate-800 font-sans;
   }
 }
+
+/* ── Anti-cheat: lapisan kedua blokir cetak (Ctrl/Cmd+P sudah diblokir via JS) ──
+ * Mencegah print-to-PDF menyelamatkan soal. Layar tes juga memakai
+ * user-select: none (kelas Tailwind `select-none` di root TestEngine). */
+@media print {
+  body {
+    display: none !important;
+  }
+}
