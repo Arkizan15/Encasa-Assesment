@@ -101,10 +101,10 @@ export default function CustomSelect({ id, value, placeholder, options = [], ico
   const optionClass = (o, i) =>
     `cursor-target w-full px-4 py-2.5 text-left text-sm transition-colors ${
       o.value === value
-        ? 'bg-amber-500/15 text-amber-300'
+        ? 'bg-brand-50 text-brand-600'
         : i === highlight
-          ? 'bg-navy-700 text-slate-100'
-          : 'text-slate-300 hover:bg-navy-700'
+          ? 'bg-brand-50 text-brand-700'
+          : 'text-slate-600 hover:bg-slate-50'
     }`
 
   return (
@@ -119,9 +119,9 @@ export default function CustomSelect({ id, value, placeholder, options = [], ico
         aria-expanded={open}
         aria-activedescendant={open && highlight >= 0 ? `${id}-option-${highlight}` : undefined}
         onClick={() => (open ? setOpen(false) : openDropdown())}
-        className={`cursor-target w-full rounded-xl border bg-navy-950/60 pl-10 pr-10 py-3 text-left text-sm outline-none transition-colors ${
-          selected ? 'text-slate-100' : 'text-slate-500'
-        } ${error ? 'border-red-500/60' : 'border-navy-700'}`}
+        className={`cursor-target w-full rounded-xl border bg-white pl-10 pr-10 py-3 text-left text-sm outline-none transition-colors ${
+          selected ? 'text-slate-900' : 'text-slate-400'
+        } ${error ? 'border-red-400' : 'border-slate-300'}`}
       >
         {selected ? selected.label : placeholder}
       </button>
@@ -137,7 +137,7 @@ export default function CustomSelect({ id, value, placeholder, options = [], ico
           role="listbox"
           aria-labelledby={id}
           ref={listRef}
-          className="absolute z-30 mt-2 w-full rounded-xl bg-navy-800 shadow-card py-1"
+          className="absolute z-30 mt-2 w-full rounded-xl bg-white border border-slate-200 shadow-card py-1"
         >
           <div className="max-h-60 overflow-y-auto">
             {items.map((o, i) => (
@@ -169,12 +169,12 @@ export default function CustomSelect({ id, value, placeholder, options = [], ico
           <div
             role="listbox"
             aria-labelledby={id}
-            className="w-full max-w-md rounded-2xl bg-navy-900 border border-navy-800 shadow-2xl overflow-hidden"
+            className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header sheet */}
-            <div className="flex items-center justify-between bg-amber-500/10 border-b border-navy-700 px-5 py-4">
-              <p className="font-display text-base font-semibold text-slate-100">{sheetTitle}</p>
+            <div className="flex items-center justify-between bg-amber-50 border-b border-slate-200 px-5 py-4">
+              <p className="font-display text-base font-semibold text-slate-800">{sheetTitle}</p>
               <button
                 type="button"
                 onClick={close}
@@ -205,11 +205,11 @@ export default function CustomSelect({ id, value, placeholder, options = [], ico
             </div>
 
             {/* Footer sheet */}
-            <div className="border-t border-navy-700 px-5 py-3">
+            <div className="border-t border-slate-200 px-5 py-3">
               <button
                 type="button"
                 onClick={close}
-                className="cursor-target w-full rounded-xl bg-navy-800 px-4 py-2.5 text-sm font-bold text-slate-300 transition-colors hover:bg-navy-700"
+                className="cursor-target w-full rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-200"
               >
                 Batal
               </button>

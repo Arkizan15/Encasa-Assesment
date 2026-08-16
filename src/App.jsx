@@ -50,16 +50,16 @@ export default function App() {
         spinDuration={2}
         hideDefaultCursor
         parallaxOn
-        cursorColor="#60a5fa"
+        cursorColor="#1E70DE"
         cursorColorOnTarget="#f59e0b"
       />
 
       {/* Latar Silk (React Bits) — animasi shader WebGL di belakang semua layar.
-       * Layar memakai bg-navy-950/70 sehingga pola silk terlihat samar di tepinya. */}
+       * Layar memakai bg-slate-50 sehingga pola silk terlihat samar di tepinya. */}
       <SilkErrorBoundary>
         <Suspense fallback={null}>
           <div className="fixed inset-0 -z-10 pointer-events-none" aria-hidden="true">
-            <Silk speed={2} scale={1} color="#c7d8ee" noiseIntensity={0.8} />
+            <Silk speed={2} scale={1} color="#a9c9f8" noiseIntensity={0.8} />
           </div>
         </Suspense>
       </SilkErrorBoundary>

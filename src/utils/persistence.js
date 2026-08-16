@@ -39,6 +39,10 @@ export function loadTestState() {
     currentIndex:
       Number.isInteger(data.currentIndex) && data.currentIndex >= 0 ? data.currentIndex : 0,
     answers: data.answers && typeof data.answers === 'object' ? data.answers : {},
+    // id soal yang sudah dievaluasi & terkunci (feedback instan ala Quizizz)
+    answeredIds: Array.isArray(data.answeredIds) ? data.answeredIds : [],
+    // id soal → boolean (benar/salah) dari evaluasi client-side
+    correctMap: data.correctMap && typeof data.correctMap === 'object' ? data.correctMap : {},
     flagged: Array.isArray(data.flagged) ? data.flagged : [],
     expiredQuestions: Array.isArray(data.expiredQuestions) ? data.expiredQuestions : [],
     tabSwitchCount: Number.isFinite(data.tabSwitchCount) ? data.tabSwitchCount : 0,
@@ -53,6 +57,8 @@ export function loadTestState() {
 export function saveTestState({
   currentIndex,
   answers,
+  answeredIds,
+  correctMap,
   flagged,
   expiredQuestions,
   tabSwitchCount,
@@ -66,6 +72,8 @@ export function saveTestState({
       JSON.stringify({
         currentIndex,
         answers,
+        answeredIds,
+        correctMap,
         flagged,
         expiredQuestions,
         tabSwitchCount,

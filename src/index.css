@@ -34,7 +34,7 @@
   }
 
   body {
-    @apply bg-navy-950 text-slate-200 font-sans;
+    @apply bg-slate-50 text-slate-800 font-sans;
   }
 
   /* Judul display memakai serif Fraunces */
@@ -48,20 +48,10 @@
     outline: none;
   }
 
-  /* Hilangkan warna border di SEMUA komponen — border hanya penentu tata
-   * letak (width), warnanya dibuat transparan (kartu, divider, input, badge).
-   * KECUALI .target-cursor-corner: bracket kursor target harus tetap berwarna
-   * (warnanya di-set inline oleh TargetCursor). */
-  *:not(.target-cursor-corner),
-  *:not(.target-cursor-corner)::before,
-  *:not(.target-cursor-corner)::after {
-    border-color: transparent !important;
-  }
-
-  /* Sorotan teks senada tema biru */
+  /* Sorotan teks senada brand biru */
   ::selection {
-    background: rgb(59 130 246 / 0.35);
-    color: #f1f5f9;
+    background: rgb(30 112 222 / 0.2);
+    color: #0f172a;
   }
 }
 
@@ -96,7 +86,23 @@
 }
 .hover-lift:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+}
+
+/* ── Stiker transisi antar soal: muncul dengan pop halus ── */
+@keyframes sticker-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7) translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-sticker-pop {
+  animation: sticker-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* ── Anti-cheat: lapisan kedua blokir cetak (Ctrl/Cmd+P sudah diblokir via JS) ──

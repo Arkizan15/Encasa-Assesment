@@ -10,11 +10,12 @@ import { ArrowRightIcon } from '@heroicons/react/24/solid'
 import { GRADE_LIST, CLASS_LIST } from '../data/classes.js'
 import { validateIdentity } from '../utils/validation.js'
 import CustomSelect from './CustomSelect.jsx'
+import { MascotHead } from './MascotOrnament.jsx'
 
 /**
  * FASE 1 — Form Identitas Pengguna.
  * Input Nama Lengkap (wajib) + Dropdown Kelas (tidak boleh ketik bebas).
- * Tema navy flat, font Poppins, tanpa gradient.
+ * Tema light (slate), aksen brand biru + CTA amber, tanpa gradient.
  */
 export default function IdentityForm({ onSubmit, initialData }) {
   // initialData (opsional) → isi form dengan data sebelumnya saat kembali dari lobby
@@ -34,10 +35,15 @@ export default function IdentityForm({ onSubmit, initialData }) {
   }
 
   return (
-    <div className="min-h-screen bg-navy-950/70 flex items-center justify-center px-4 py-10">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-lg">
         {/* Brand header */}
-        <div className="flex items-center justify-center mb-6">
+        <div className="relative flex items-center justify-center mb-6">
+          <MascotHead
+            variant="talking"
+            size="lg"
+            className="absolute left-0 sm:left-4 top-1/2 -translate-y-1/2 hidden sm:inline-block"
+          />
           <img
             src="/logo-encasa.png"
             alt="Logo Encasa Grouping"
@@ -47,15 +53,15 @@ export default function IdentityForm({ onSubmit, initialData }) {
         </div>
 
         {/* Card utama */}
-        <div className="bg-navy-900 rounded-2xl border border-navy-800 shadow-card">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-card">
           {/* Header card */}
-          <div className="bg-navy-850 rounded-t-2xl border-b border-navy-700 px-7 py-6">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-navy-900 border border-blue-500/30 px-3 py-1 text-xs font-semibold text-blue-300">
+          <div className="bg-brand-50 rounded-t-2xl border-b border-brand-100 px-7 py-6">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white border border-brand-200 px-3 py-1 text-xs font-semibold text-brand-600">
               <InformationCircleIcon className="h-4 w-4" />
               TES DIAGNOSTIK ONLINE
             </span>
-            <h1 className="mt-3 text-2xl font-bold text-slate-100">Identitas Pendaftar</h1>
-            <p className="mt-1 text-sm text-slate-400">
+            <h1 className="mt-3 text-2xl font-bold text-slate-900">Identitas Pendaftar</h1>
+            <p className="mt-1 text-sm text-slate-500">
               Isi data diri dengan benar. Data ini akan digunakan untuk menilai hasil tes kamu.
             </p>
           </div>
@@ -63,11 +69,11 @@ export default function IdentityForm({ onSubmit, initialData }) {
           <form onSubmit={handleSubmit} noValidate className="px-7 py-6 space-y-5">
             {/* Nama Lengkap */}
             <div>
-              <label htmlFor="nama" className="block text-sm font-semibold text-slate-300 mb-1.5">
+              <label htmlFor="nama" className="block text-sm font-semibold text-slate-700 mb-1.5">
                 Nama Lengkap <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 h-5 w-5" />
+                <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
                 <input
                   id="nama"
                   type="text"
@@ -78,10 +84,10 @@ export default function IdentityForm({ onSubmit, initialData }) {
                   }}
                   placeholder="Contoh: Arkan Rifqy Fauzan"
                   autoComplete="name"
-                  className={`w-full rounded-xl border bg-navy-950/60 pl-10 pr-4 py-3 text-sm text-slate-100 outline-none transition-colors placeholder:text-slate-500 ${
+                  className={`w-full rounded-xl border bg-white pl-10 pr-4 py-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 ${
                     errors.nama
-                      ? 'border-red-500/60 focus:border-red-400'
-                      : 'border-navy-700 focus:border-blue-400'
+                      ? 'border-red-400 focus:border-red-500'
+                      : 'border-slate-300 focus:border-brand-500'
                   }`}
                 />
               </div>
@@ -92,7 +98,7 @@ export default function IdentityForm({ onSubmit, initialData }) {
 
             {/* Tingkat (X / XI) */}
             <div>
-              <label htmlFor="tingkat" className="block text-sm font-semibold text-slate-300 mb-1.5">
+              <label htmlFor="tingkat" className="block text-sm font-semibold text-slate-700 mb-1.5">
                 Kelas (Tingkat) <span className="text-red-500">*</span>
               </label>
               <CustomSelect
@@ -101,7 +107,7 @@ export default function IdentityForm({ onSubmit, initialData }) {
                 placeholder="Pilih tingkat (X / XI)…"
                 options={GRADE_LIST.map((g) => ({ value: g, label: `Kelas ${g}` }))}
                 icon={
-                  <RectangleStackIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 h-5 w-5" />
+                  <RectangleStackIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
                 }
                 error={errors.tingkat}
                 onChange={(v) => {
@@ -116,7 +122,7 @@ export default function IdentityForm({ onSubmit, initialData }) {
 
             {/* Nama Kelas */}
             <div>
-              <label htmlFor="kelas" className="block text-sm font-semibold text-slate-300 mb-1.5">
+              <label htmlFor="kelas" className="block text-sm font-semibold text-slate-700 mb-1.5">
                 Nama Kelas <span className="text-red-500">*</span>
               </label>
               <CustomSelect
@@ -125,7 +131,7 @@ export default function IdentityForm({ onSubmit, initialData }) {
                 placeholder="Pilih nama kelas…"
                 options={CLASS_LIST}
                 icon={
-                  <BookOpenIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 h-5 w-5" />
+                  <BookOpenIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
                 }
                 error={errors.kelas}
                 onChange={(v) => {
@@ -139,8 +145,8 @@ export default function IdentityForm({ onSubmit, initialData }) {
             </div>
 
             {/* Info aturan tes */}
-            <div className="rounded-xl bg-blue-500/10 border border-blue-500/25 px-4 py-3.5">
-              <p className="text-xs font-bold text-blue-300 uppercase tracking-wide mb-2">
+            <div className="rounded-xl bg-brand-50 border border-brand-100 px-4 py-3.5">
+              <p className="text-xs font-bold text-brand-700 uppercase tracking-wide mb-2">
                 Sebelum mulai, perhatikan:
               </p>
               <ul className="space-y-1.5">
@@ -152,8 +158,8 @@ export default function IdentityForm({ onSubmit, initialData }) {
                   'Jujur, bakal lebih asik kalo kalian buka ini di PC/laptop',
                   'Wanna try cheating?'
                 ].map((rule) => (
-                  <li key={rule} className="flex items-start gap-2 text-xs text-blue-200/80">
-                    <CheckCircleIcon className="text-blue-400 mt-0.5 shrink-0 h-4 w-4" />
+                  <li key={rule} className="flex items-start gap-2 text-xs text-slate-600">
+                    <CheckCircleIcon className="text-brand-500 mt-0.5 shrink-0 h-4 w-4" />
                     {rule}
                   </li>
                 ))}
@@ -163,7 +169,7 @@ export default function IdentityForm({ onSubmit, initialData }) {
             {/* Submit */}
             <button
               type="submit"
-              className="cursor-target w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-500 px-4 py-3.5 text-sm font-bold text-white shadow-soft transition-colors hover:bg-blue-400 active:bg-blue-600"
+              className="cursor-target w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-3.5 text-sm font-bold text-white shadow-soft transition-colors hover:bg-brand-400 active:bg-brand-600"
             >
               Mulai Tes Assessment
               <ArrowRightIcon className="h-5 w-5" />
